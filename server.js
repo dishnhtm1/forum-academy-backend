@@ -15,7 +15,7 @@ const app = express();
 app.use(cors({
     origin: [
         'http://localhost:3000',
-        'https://your-frontend-domain.azurewebsites.net', // Add your actual frontend domain
+        'https://wonderful-meadow-0e35b381e.6.azurestaticapps.net', // Add your actual frontend domain
         '*' // Temporarily allow all origins for testing
     ],
     credentials: true
