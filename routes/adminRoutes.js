@@ -36,4 +36,3 @@ router.get('/applications', authenticate, authorizeRoles('admin'), async (req, r
 });
 
 module.exports = router;
-
