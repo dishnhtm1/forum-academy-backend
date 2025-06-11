@@ -69,26 +69,47 @@ router.get('/pending', authenticate, authorizeRoles('admin'), async (req, res) =
     }
 });
 
-// Admin route to fetch all users
+// // Admin route to fetch all users
+// router.get('/users', authenticate, authorizeRoles('admin'), async (req, res) => {
+//     try {
+//         const { role, approved } = req.query;
+        
+//         let filter = {};
+//         if (role) filter.role = role;
+//         if (approved !== undefined) filter.isApproved = approved === 'true';
+        
+//         const users = await User.find(filter).select('-password').sort({ createdAt: -1 });
+//         res.json({
+//             message: 'Users retrieved successfully',
+//             users,
+//             count: users.length
+//         });
+//     } catch (err) {
+//         console.error('Fetch users error:', err);
+//         res.status(500).json({ message: 'Failed to fetch users' });
+//     }
+// });
 router.get('/users', authenticate, authorizeRoles('admin'), async (req, res) => {
     try {
         const { role, approved } = req.query;
-        
+
         let filter = {};
         if (role) filter.role = role;
         if (approved !== undefined) filter.isApproved = approved === 'true';
-        
+
         const users = await User.find(filter).select('-password').sort({ createdAt: -1 });
+
         res.json({
             message: 'Users retrieved successfully',
             users,
             count: users.length
         });
     } catch (err) {
-        console.error('Fetch users error:', err);
-        res.status(500).json({ message: 'Failed to fetch users' });
+        console.error('Get user info error:', err);
+        res.status(500).json({ message: 'Server error' });
     }
 });
+
 
 // Get current user info
 router.get('/me', authenticate, async (req, res) => {
