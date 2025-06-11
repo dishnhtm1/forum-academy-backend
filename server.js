@@ -15,7 +15,6 @@ connectDB();
 // CORS configuration for Azure
 app.use(cors({
     origin: [
-        'http://localhost:3000',
         'https://wonderful-meadow-0e35b381e.6.azurestaticapps.net',
         process.env.CLIENT_URL
     ].filter(Boolean),
