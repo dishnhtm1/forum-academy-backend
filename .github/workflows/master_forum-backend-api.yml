@@ -69,5 +69,4 @@ jobs:
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'forum-backend-api'
-          slot-name: 'Production'
-          package: .
+          slot-name: 'Pro
