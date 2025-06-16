@@ -326,7 +326,166 @@ router.get('/', authenticate, authorizeRoles('admin'), async (req, res) => {
     }
 });
 
-// DELETE user by ID (admin only)
+// // DELETE user by ID (admin only)
+// router.delete('/:id', authenticate, authorizeRoles('admin'), async (req, res) => {
+//     try {
+//         console.log(`🗑️ DELETE request received for user ID: ${req.params.id}`);
+//         console.log(`🔐 Auth user: ${req.user?.email || 'Unknown'}`);
+        
+//         // Prevent admin from deleting themselves
+//         if (req.params.id === req.user.id || req.params.id === req.user._id.toString()) {
+//             console.log('❌ User trying to delete themselves');
+//             return res.status(400).json({
+//                 success: false,
+//                 message: 'Cannot delete your own account'
+//             });
+//         }
+        
+//         console.log(`🔍 Looking for user with ID: ${req.params.id}`);
+//         const user = await User.findById(req.params.id);
+        
+//         if (!user) {
+//             console.log('❌ User not found in database');
+//             return res.status(404).json({
+//                 success: false,
+//                 message: 'User not found'
+//             });
+//         }
+        
+//         console.log(`👤 Found user: ${user.email}, deleting...`);
+//         await User.findByIdAndDelete(req.params.id);
+        
+//         console.log(`✅ User deleted successfully: ${user.email}`);
+//         res.json({
+//             success: true,
+//             message: 'User deleted successfully',
+//             deletedUser: {
+//                 id: user._id,
+//                 email: user.email,
+//                 name: `${user.firstName} ${user.lastName}`
+//             }
+//         });
+//     } catch (error) {
+//         console.error('❌ Error deleting user:', error);
+//         res.status(500).json({
+//             success: false,
+//             message: 'Error deleting user',
+//             error: error.message
+//         });
+//     }
+// });
+
+// // PUT update user by ID (admin only)
+// router.put('/:id', authenticate, authorizeRoles('admin'), async (req, res) => {
+//     try {
+//         console.log(`📝 Updating user with ID: ${req.params.id}`);
+//         const { firstName, lastName, email, role, password } = req.body;
+        
+//         const updateData = {
+//             firstName,
+//             lastName,
+//             email,
+//             role
+//         };
+        
+//         // Only update password if provided
+//         if (password && password.trim() !== '') {
+//             updateData.password = password;
+//         }
+        
+//         const user = await User.findByIdAndUpdate(
+//             req.params.id,
+//             updateData,
+//             { new: true, runValidators: true }
+//         ).select('-password');
+        
+//         if (!user) {
+//             return res.status(404).json({
+//                 success: false,
+//                 message: 'User not found'
+//             });
+//         }
+        
+//         console.log(`✅ User updated: ${user.email}`);
+//         res.json({
+//             success: true,
+//             message: 'User updated successfully',
+//             user
+//         });
+//     } catch (error) {
+//         console.error('❌ Error updating user:', error);
+        
+//         if (error.code === 11000) {
+//             return res.status(400).json({
+//                 success: false,
+//                 message: 'Email already exists'
+//             });
+//         }
+        
+//         res.status(500).json({
+//             success: false,
+//             message: 'Error updating user',
+//             error: error.message
+//         });
+//     }
+// });
+
+// PUT update user by ID (admin only) - FIXED RESPONSE
+router.put('/:id', authenticate, authorizeRoles('admin'), async (req, res) => {
+    try {
+        console.log(`📝 Updating user with ID: ${req.params.id}`);
+        const { firstName, lastName, email, role, password } = req.body;
+        
+        const updateData = {
+            firstName,
+            lastName,
+            email,
+            role
+        };
+        
+        // Only update password if provided
+        if (password && password.trim() !== '') {
+            updateData.password = password;
+        }
+        
+        const user = await User.findByIdAndUpdate(
+            req.params.id,
+            updateData,
+            { new: true, runValidators: true }
+        ).select('-password');
+        
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+        
+        console.log(`✅ User updated: ${user.email}`);
+        res.json({
+            success: true,
+            message: 'User updated successfully',
+            user: user  // ✅ Return the updated user object directly
+        });
+    } catch (error) {
+        console.error('❌ Error updating user:', error);
+        
+        if (error.code === 11000) {
+            return res.status(400).json({
+                success: false,
+                message: 'Email already exists'
+            });
+        }
+        
+        res.status(500).json({
+            success: false,
+            message: 'Error updating user',
+            error: error.message
+        });
+    }
+});
+
+// DELETE user by ID (admin only) - FIXED IMPLEMENTATION
 router.delete('/:id', authenticate, authorizeRoles('admin'), async (req, res) => {
     try {
         console.log(`🗑️ DELETE request received for user ID: ${req.params.id}`);
@@ -375,60 +534,6 @@ router.delete('/:id', authenticate, authorizeRoles('admin'), async (req, res) =>
     }
 });
 
-// PUT update user by ID (admin only)
-router.put('/:id', authenticate, authorizeRoles('admin'), async (req, res) => {
-    try {
-        console.log(`📝 Updating user with ID: ${req.params.id}`);
-        const { firstName, lastName, email, role, password } = req.body;
-        
-        const updateData = {
-            firstName,
-            lastName,
-            email,
-            role
-        };
-        
-        // Only update password if provided
-        if (password && password.trim() !== '') {
-            updateData.password = password;
-        }
-        
-        const user = await User.findByIdAndUpdate(
-            req.params.id,
-            updateData,
-            { new: true, runValidators: true }
-        ).select('-password');
-        
-        if (!user) {
-            return res.status(404).json({
-                success: false,
-                message: 'User not found'
-            });
-        }
-        
-        console.log(`✅ User updated: ${user.email}`);
-        res.json({
-            success: true,
-            message: 'User updated successfully',
-            user
-        });
-    } catch (error) {
-        console.error('❌ Error updating user:', error);
-        
-        if (error.code === 11000) {
-            return res.status(400).json({
-                success: false,
-                message: 'Email already exists'
-            });
-        }
-        
-        res.status(500).json({
-            success: false,
-            message: 'Error updating user',
-            error: error.message
-        });
-    }
-});
 
 // PUT approve/reject user (admin only)
 router.put('/:id/approval', authenticate, authorizeRoles('admin'), async (req, res) => {
