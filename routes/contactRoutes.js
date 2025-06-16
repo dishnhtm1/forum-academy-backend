@@ -176,6 +176,44 @@ router.put('/:id/status', authenticate, authorizeRoles('admin'), async (req, res
         });
     }
 });
+// DELETE contact by ID (admin only)
+router.delete('/:id', authenticate, authorizeRoles('admin'), async (req, res) => {
+    try {
+        const contactId = req.params.id;
+        console.log(`🗑️ Attempting to delete contact: ${contactId}`);
+
+        const contact = await Contact.findById(contactId);
+        if (!contact) {
+            console.log('❌ Contact not found');
+            return res.status(404).json({
+                success: false,
+                message: 'Contact not found'
+            });
+        }
+
+        await Contact.findByIdAndDelete(contactId);
+        console.log(`✅ Contact deleted successfully: ${contact.email}`);
+
+        res.json({
+            success: true,
+            message: 'Contact deleted successfully',
+            deletedContact: {
+                id: contact._id,
+                name: contact.name,
+                email: contact.email,
+                message: contact.message
+            }
+        });
+    } catch (error) {
+        console.error('❌ Error deleting contact:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error deleting contact',
+            error: error.message
+        });
+    }
+});
+
 
 console.log('✅ contactRoutes.js loaded successfully');
 module.exports = router;
