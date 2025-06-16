@@ -677,7 +677,7 @@ const express = require('express');
 const router = express.Router();
 const Application = require('../models/Application');
 const { authenticate, authorizeRoles } = require('../middleware/authMiddleware');
-// const { sendEmail } = require('../utils/emailService');
+const { sendEmail } = require('../utils/emailService');
 
 
 console.log('🔧 Loading applicationRoutes.js...');
