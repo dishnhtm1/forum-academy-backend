@@ -17,7 +17,13 @@ const sendEmail = async ({ to, subject, text }) => {
         text
     };
 
-    return transporter.sendMail(mailOptions);
+    try {
+        const result = await transporter.sendMail(mailOptions);
+        console.log('✅ Email sent:', result.response);
+    } catch (error) {
+        console.error('❌ Email sending failed:', error);
+        throw error; // This will send 500 to frontend
+    }
 };
 
 module.exports = { sendEmail };
