@@ -677,7 +677,7 @@ const express = require('express');
 const router = express.Router();
 const Application = require('../models/Application');
 const { authenticate, authorizeRoles } = require('../middleware/authMiddleware');
-const { sendEmail } = require('../utils/emailService');
+// const { sendEmail } = require('../utils/emailService');
 
 
 console.log('🔧 Loading applicationRoutes.js...');
@@ -737,77 +737,7 @@ router.post('/', async (req, res) => {
     }
 });
 
-// ✅ POST /api/applications/send-message (admin only)
-// router.post('/send-message', authenticate, authorizeRoles('admin'), async (req, res) => {
-//     try {
-//         const { to, subject, message, applicantName, applicationId } = req.body;
-
-//         console.log('📧 Send message request received:');
-//         console.log(`   From: ${req.user?.email || 'Unknown admin'}`);
-//         console.log(`   To: ${to}`);
-//         console.log(`   Subject: ${subject}`);
-//         console.log(`   Applicant: ${applicantName}`);
-//         console.log(`   Application ID: ${applicationId}`);
-
-//         if (!to || !subject || !message) {
-//             return res.status(400).json({
-//                 success: false,
-//                 message: 'Missing required fields: to, subject, and message are required'
-//             });
-//         }
-
-//         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-//         if (!emailRegex.test(to)) {
-//             return res.status(400).json({
-//                 success: false,
-//                 message: 'Invalid email address format'
-//             });
-//         }
-
-//         if (applicationId) {
-//             const application = await Application.findById(applicationId);
-//             if (!application) {
-//                 return res.status(404).json({
-//                     success: false,
-//                     message: 'Application not found'
-//                 });
-//             }
-//         }
-
-//         // // Simulate sending email (for now)
-//         // console.log('📧 Simulating email send...');
-//         // await new Promise(resolve => setTimeout(resolve, 1000));
-
-//         // console.log('✅ Message sent successfully');
-//         await sendEmail({
-//             to,
-//             subject,
-//             text: message
-//         });
-
-//         console.log('✅ Real email sent successfully');
-
-//         res.json({
-//             success: true,
-//             message: 'Message sent successfully',
-//             details: {
-//                 recipient: to,
-//                 subject: subject,
-//                 applicant: applicantName,
-//                 sentBy: req.user?.email,
-//                 timestamp: new Date().toISOString()
-//             }
-//         });
-//     } catch (error) {
-//         console.error('❌ Error sending message:', error);
-//         res.status(500).json({
-//             success: false,
-//             message: 'Error sending message',
-//             error: error.message
-//         });
-//     }
-// });
-
+//✅ POST /api/applications/send-message (admin only)
 router.post('/send-message', authenticate, authorizeRoles('admin'), async (req, res) => {
     try {
         const { to, subject, message, applicantName, applicationId } = req.body;
@@ -844,29 +774,99 @@ router.post('/send-message', authenticate, authorizeRoles('admin'), async (req, 
             }
         }
 
-        // ✅ Real email send
-        await sendEmail({ to, subject, text: message });
+        // // Simulate sending email (for now)
+        // console.log('📧 Simulating email send...');
+        // await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // console.log('✅ Message sent successfully');
+        await sendEmail({
+            to,
+            subject,
+            text: message
+        });
+
+        console.log('✅ Real email sent successfully');
 
         res.json({
             success: true,
-            message: 'Email sent successfully',
+            message: 'Message sent successfully',
             details: {
                 recipient: to,
-                subject,
+                subject: subject,
                 applicant: applicantName,
                 sentBy: req.user?.email,
                 timestamp: new Date().toISOString()
             }
         });
     } catch (error) {
-        console.error('❌ Error sending email:', error);
+        console.error('❌ Error sending message:', error);
         res.status(500).json({
             success: false,
-            message: 'Error sending email',
+            message: 'Error sending message',
             error: error.message
         });
     }
 });
+
+// router.post('/send-message', authenticate, authorizeRoles('admin'), async (req, res) => {
+//     try {
+//         const { to, subject, message, applicantName, applicationId } = req.body;
+
+//         console.log('📧 Send message request received:');
+//         console.log(`   From: ${req.user?.email || 'Unknown admin'}`);
+//         console.log(`   To: ${to}`);
+//         console.log(`   Subject: ${subject}`);
+//         console.log(`   Applicant: ${applicantName}`);
+//         console.log(`   Application ID: ${applicationId}`);
+
+//         if (!to || !subject || !message) {
+//             return res.status(400).json({
+//                 success: false,
+//                 message: 'Missing required fields: to, subject, and message are required'
+//             });
+//         }
+
+//         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+//         if (!emailRegex.test(to)) {
+//             return res.status(400).json({
+//                 success: false,
+//                 message: 'Invalid email address format'
+//             });
+//         }
+
+//         if (applicationId) {
+//             const application = await Application.findById(applicationId);
+//             if (!application) {
+//                 return res.status(404).json({
+//                     success: false,
+//                     message: 'Application not found'
+//                 });
+//             }
+//         }
+
+//         // ✅ Real email send
+//         await sendEmail({ to, subject, text: message });
+
+//         res.json({
+//             success: true,
+//             message: 'Email sent successfully',
+//             details: {
+//                 recipient: to,
+//                 subject,
+//                 applicant: applicantName,
+//                 sentBy: req.user?.email,
+//                 timestamp: new Date().toISOString()
+//             }
+//         });
+//     } catch (error) {
+//         console.error('❌ Error sending email:', error);
+//         res.status(500).json({
+//             success: false,
+//             message: 'Error sending email',
+//             error: error.message
+//         });
+//     }
+// });
 
 
 
