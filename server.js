@@ -2,7 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 dotenv.config();
-
+const authRoutes = require('./routes/authRoutes');
+app.use('/api/auth', authRoutes);
 const connectDB = require('./config/db');
 const errorHandler = require('./middleware/errorMiddleware');
 
@@ -13,14 +14,30 @@ const app = express();
 connectDB();
 
 // CORS configuration for Azure
+// app.use(cors({
+//     origin: [
+//         'http://localhost:3000',
+//         'https://wonderful-meadow-0e35b381e.6.azurestaticapps.net',
+//         process.env.CLIENT_URL
+//     ].filter(Boolean),
+//     credentials: true
+// }));
+
+
 app.use(cors({
     origin: [
         'http://localhost:3000',
         'https://wonderful-meadow-0e35b381e.6.azurestaticapps.net',
         process.env.CLIENT_URL
     ].filter(Boolean),
-    credentials: true
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
+// Handle preflight requests - TEMPORARILY COMMENTED OUT
+// app.options('*', cors());
+
 
 app.use(express.json());
 
@@ -48,6 +65,10 @@ app.get('/', (req, res) => {
 // ROUTES - LOAD ONLY ONCE!
 console.log('🔧 Loading routes...');
 
+// Test routes one by one to find the problematic route
+// Uncomment ONE route at a time to identify which one causes the error
+
+// Test auth routes first
 try {
     const authRoutes = require('./routes/authRoutes');
     app.use('/api/auth', authRoutes);
@@ -55,6 +76,9 @@ try {
 } catch (error) {
     console.error('❌ Failed to load auth routes:', error.message);
 }
+
+
+// Keep other routes commented for now
 
 try {
     const applicationRoutes = require('./routes/applicationRoutes');
@@ -87,6 +111,8 @@ try {
 } catch (error) {
     console.error('❌ Failed to load admin routes:', error.message);
 }
+
+console.log('🔧 All routes loaded successfully');
 
 // Error handler middleware
 app.use(errorHandler);
