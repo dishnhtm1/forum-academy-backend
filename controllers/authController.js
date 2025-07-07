@@ -1,6 +1,39 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 
+// Admin: Send message to a specific user
+exports.sendMessageToUser = async (req, res) => {
+  try {
+    const { userId, message } = req.body;
+
+    if (!userId || !message) {
+      return res.status(400).json({ message: 'userId and message are required' });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // 📧 Log for debug / email sending logic
+    console.log(`📨 Admin is sending message to ${user.email}: ${message}`);
+
+    // Option 1: Just respond back (basic implementation)
+    res.status(200).json({
+      message: 'Message sent successfully',
+      to: user.email,
+      body: message
+    });
+
+    // Optional Future: Implement email with nodemailer or save to a Message model
+
+  } catch (err) {
+    console.error('❌ Send message error:', err);
+    res.status(500).json({ message: 'Failed to send message' });
+  }
+};
+
+
 // Register Controller
 exports.register = async (req, res) => {
   const { firstName, lastName, email, password, role } = req.body;
