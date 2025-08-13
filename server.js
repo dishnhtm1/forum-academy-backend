@@ -27,7 +27,7 @@ connectDB();
 app.use(cors({
     origin: [
         'http://localhost:3000',
-        'https://wonderful-meadow-0e35b381e.6.azurestaticapps.net',
+        'https://icy-moss-00f282010.1.azurestaticapps.net',
         process.env.CLIENT_URL
     ].filter(Boolean),
     credentials: true,
@@ -141,7 +141,7 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`📍 Server URL: ${process.env.NODE_ENV === 'production' 
-        ? 'https://forum-backend-api-a7hgg9g7hmgegrh3.eastasia-01.azurewebsites.net' 
+        ? 'https://forum-backend-cnfrb6eubggucqda.canadacentral-01.azurewebsites.net' 
         : `http://localhost:${PORT}`}`);
     console.log('🔧 Routes loaded, server ready!');
 });
