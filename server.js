@@ -2,8 +2,6 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 dotenv.config();
-const authRoutes = require('./routes/authRoutes');
-app.use('/api/auth', authRoutes);
 const connectDB = require('./config/db');
 const errorHandler = require('./middleware/errorMiddleware');
 
@@ -13,17 +11,7 @@ const app = express();
 // Connect to DB
 connectDB();
 
-// CORS configuration for Azure
-// app.use(cors({
-//     origin: [
-//         'http://localhost:3000',
-//         'https://wonderful-meadow-0e35b381e.6.azurestaticapps.net',
-//         process.env.CLIENT_URL
-//     ].filter(Boolean),
-//     credentials: true
-// }));
-
-
+// CORS for Azure & dev
 app.use(cors({
     origin: [
         'http://localhost:3000',
@@ -35,19 +23,15 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// Handle preflight requests - TEMPORARILY COMMENTED OUT
-// app.options('*', cors());
-
-
 app.use(express.json());
 
-// Request logging middleware
+// Request logger
 app.use((req, res, next) => {
     console.log(`📥 ${req.method} ${req.path} - ${new Date().toISOString()}`);
     next();
 });
 
-// Health check route
+// Health check & root
 app.get('/api/health', (req, res) => {
     res.json({
         message: 'Server is running',
@@ -57,18 +41,13 @@ app.get('/api/health', (req, res) => {
     });
 });
 
-// Root route
 app.get('/', (req, res) => {
     res.send('✅ Backend is running with all routes.');
 });
 
-// ROUTES - LOAD ONLY ONCE!
+// Load routes
 console.log('🔧 Loading routes...');
 
-// Test routes one by one to find the problematic route
-// Uncomment ONE route at a time to identify which one causes the error
-
-// Test auth routes first
 try {
     const authRoutes = require('./routes/authRoutes');
     app.use('/api/auth', authRoutes);
@@ -76,9 +55,6 @@ try {
 } catch (error) {
     console.error('❌ Failed to load auth routes:', error.message);
 }
-
-
-// Keep other routes commented for now
 
 try {
     const applicationRoutes = require('./routes/applicationRoutes');
@@ -114,10 +90,10 @@ try {
 
 console.log('🔧 All routes loaded successfully');
 
-// Error handler middleware
+// Error middleware
 app.use(errorHandler);
 
-// 404 handler (MUST be last)
+// 404 handler
 app.use((req, res) => {
     console.log(`❌ 404 - Route not found: ${req.method} ${req.originalUrl}`);
     res.status(404).json({
@@ -140,13 +116,14 @@ app.use((req, res) => {
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`📍 Server URL: ${process.env.NODE_ENV === 'production' 
-        ? 'https://forum-backend-cnfrb6eubggucqda.canadacentral-01.azurewebsites.net' 
+    console.log(`📍 Server URL: ${process.env.NODE_ENV === 'production'
+        ? 'https://forum-backend-cnfrb6eubggucqda.canadacentral-01.azurewebsites.net'
         : `http://localhost:${PORT}`}`);
     console.log('🔧 Routes loaded, server ready!');
 });
 
 module.exports = app;
+
 
 
 // const express = require('express');
