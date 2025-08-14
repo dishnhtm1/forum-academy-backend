@@ -1,284 +1,182 @@
 const express = require('express');
 const router = express.Router();
-const { register, login } = require('../controllers/authController');
+const Contact = require('../models/Contact');
 const { authenticate, authorizeRoles } = require('../middleware/authMiddleware');
-const User = require('../models/User');
-const { sendMessageToUser } = require('../controllers/authController');
 
+console.log('🔧 Loading contactRoutes.js...');
 
-// Import password reset controller functions
-const {
-    forgotPassword,
-    verifyOTP,
-    resendOTP,
-    resetPassword
-} = require('../controllers/passwordResetController');
-
-// Registration and Login Routes
-router.post('/register', register);
-router.post('/login', login);
-
-// Password Reset Routes
-router.post('/forgot-password', forgotPassword);
-router.post('/verify-otp', verifyOTP);
-router.post('/resend-otp', resendOTP);
-router.post('/reset-password', resetPassword);
-router.post('/send-message', authenticate, authorizeRoles('admin'), sendMessageToUser);
-
-
-// Admin route to approve a user by ID
-router.put('/approve/:id', authenticate, authorizeRoles('admin'), async (req, res) => {
-    try {
-        const user = await User.findByIdAndUpdate(req.params.id, { isApproved: true }, { new: true });
-        if (!user) return res.status(404).json({ message: 'User not found' });
-        res.json({ 
-            message: `${user.email} has been approved`, 
-            user: { 
-                id: user._id, 
-                email: user.email, 
-                role: user.role, 
-                isApproved: user.isApproved 
-            } 
-        });
-    } catch (err) {
-        console.error('Approval error:', err);
-        res.status(500).json({ message: 'Approval failed' });
-    }
+// Debug route
+router.get('/debug', (req, res) => {
+    res.json({
+        message: 'Contact route is working!',
+        timestamp: new Date().toISOString()
+    });
 });
 
-// Admin route to reject/delete a user by ID
-router.delete('/reject/:id', authenticate, authorizeRoles('admin'), async (req, res) => {
+// GET all contacts (admin only)
+router.get('/', authenticate, authorizeRoles('admin'), async (req, res) => {
     try {
-        const user = await User.findByIdAndDelete(req.params.id);
-        if (!user) return res.status(404).json({ message: 'User not found' });
-        res.json({ message: `${user.email} has been rejected and removed` });
-    } catch (err) {
-        console.error('Rejection error:', err);
-        res.status(500).json({ message: 'Rejection failed' });
-    }
-});
-
-// Admin route to fetch all pending users
-router.get('/pending', authenticate, authorizeRoles('admin'), async (req, res) => {
-    try {
-        const pendingUsers = await User.find({ isApproved: false }).select('-password');
+        console.log('📧 Admin fetching all contacts...');
+        const contacts = await Contact.find().sort({ createdAt: -1 });
+        console.log(`✅ Found ${contacts.length} contacts`);
+        
         res.json({
-            message: 'Pending users retrieved successfully',
-            users: pendingUsers,
-            count: pendingUsers.length
+            success: true,
+            contacts: contacts,
+            count: contacts.length
         });
-    } catch (err) {
-        console.error('Fetch pending users error:', err);
-        res.status(500).json({ message: 'Failed to fetch pending users' });
+    } catch (error) {
+        console.error('❌ Error fetching contacts:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching contacts',
+            error: error.message
+        });
     }
 });
 
-// Admin route to fetch all users
-router.get('/users', authenticate, authorizeRoles('admin'), async (req, res) => {
+// POST new contact (public)
+router.post('/', async (req, res) => {
     try {
-        const { role, approved } = req.query;
-        
-        let filter = {};
-        if (role) filter.role = role;
-        if (approved !== undefined) filter.isApproved = approved === 'true';
-        
-        const users = await User.find(filter).select('-password').sort({ createdAt: -1 });
-        res.json({
-            message: 'Users retrieved successfully',
-            users,
-            count: users.length
-        });
-    } catch (err) {
-        console.error('Fetch users error:', err);
-        res.status(500).json({ message: 'Failed to fetch users' });
-    }
-});
-
-// Get current user info
-router.get('/me', authenticate, async (req, res) => {
-    try {
-        const user = await User.findById(req.user.id).select('-password');
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
-        }
-        res.json({
-            message: 'User info retrieved successfully',
-            user: {
-                id: user._id,
-                email: user.email,
-                firstName: user.firstName,
-                lastName: user.lastName,
-                role: user.role,
-                isApproved: user.isApproved,
-                createdAt: user.createdAt
-            }
-        });
-    } catch (err) {
-        console.error('Get user info error:', err);
-        res.status(500).json({ message: 'Server error' });
-    }
-});
-
-// Check approval status for a specific email
-router.get('/check-approval/:email', async (req, res) => {
-    try {
-        const user = await User.findOne({ email: req.params.email }).select('-password');
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
-        }
-        res.json({
-            message: 'User status retrieved successfully',
-            user: {
-                email: user.email,
-                isApproved: user.isApproved,
-                role: user.role,
-                createdAt: user.createdAt
-            }
-        });
-    } catch (err) {
-        console.error('Check approval error:', err);
-        res.status(500).json({ message: 'Server error' });
-    }
-});
-
-// Verify token endpoint
-router.get('/verify', authenticate, async (req, res) => {
-    try {
-        res.json({
-            message: 'Token is valid',
-            user: {
-                id: req.user.id,
-                email: req.user.email,
-                role: req.user.role,
-                isApproved: req.user.isApproved
-            }
-        });
-    } catch (err) {
-        console.error('Token verification error:', err);
-        res.status(500).json({ message: 'Token verification failed' });
-    }
-});
-
-// Change password
-router.put('/change-password', authenticate, async (req, res) => {
-    try {
-        const { currentPassword, newPassword } = req.body;
-        
-        if (!currentPassword || !newPassword) {
-            return res.status(400).json({ message: 'Current password and new password are required' });
-        }
-        
-        if (newPassword.length < 6) {
-            return res.status(400).json({ message: 'New password must be at least 6 characters long' });
-        }
-        
-        const user = await User.findById(req.user.id);
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
-        }
-        
-        const isMatch = await user.comparePassword(currentPassword);
-        if (!isMatch) {
-            return res.status(400).json({ message: 'Current password is incorrect' });
-        }
-        
-        user.password = newPassword;
-        await user.save();
-        
-        res.json({ message: 'Password changed successfully' });
-    } catch (err) {
-        console.error('Change password error:', err);
-        res.status(500).json({ message: 'Failed to change password' });
-    }
-});
-
-// Admin route to create user accounts
-router.post('/create-user', authenticate, authorizeRoles('admin'), async (req, res) => {
-    try {
-        const { firstName, lastName, email, password, role } = req.body;
-        
-        // Validate input
-        if (!firstName || !lastName || !email || !password || !role) {
-            return res.status(400).json({ message: 'All fields are required' });
-        }
-        
-        if (!['student', 'teacher', 'admin'].includes(role)) {
-            return res.status(400).json({ message: 'Invalid role specified' });
-        }
-        
-        // Check if user already exists
-        const existingUser = await User.findOne({ email: email.toLowerCase() });
-        if (existingUser) {
-            return res.status(400).json({ message: 'User already exists with this email' });
-        }
-        
-        const user = new User({
-            firstName,
-            lastName,
-            email: email.toLowerCase(),
-            password,
-            role,
-            isApproved: true // Admin-created users are pre-approved
-        });
-        
-        await user.save();
+        console.log('📧 Creating new contact:', req.body);
+        const contact = new Contact(req.body);
+        await contact.save();
         
         res.status(201).json({
-            message: `${role} account created successfully`,
-            user: {
-                id: user._id,
-                email: user.email,
-                firstName: user.firstName,
-                lastName: user.lastName,
-                role: user.role,
-                isApproved: user.isApproved
-            }
+            success: true,
+            message: 'Contact submitted successfully',
+            contact
         });
-    } catch (err) {
-        console.error('Create user error:', err);
-        res.status(500).json({ message: 'Failed to create user' });
+    } catch (error) {
+        console.error('❌ Error creating contact:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error creating contact',
+            error: error.message
+        });
     }
 });
 
-// Send message to user endpoint
-router.post('/send-message', authenticate, authorizeRoles('admin'), async (req, res) => {
+// PUT update contact status (admin only) - FIXED ROUTE
+router.put('/:id/status', authenticate, authorizeRoles('admin'), async (req, res) => {
     try {
-        const { to, subject, message, recipientName, recipientId } = req.body;
+        const { status } = req.body;
+        const contact = await Contact.findByIdAndUpdate(
+            req.params.id,
+            { status },
+            { new: true }
+        );
         
-        console.log('📧 Send message request received:');
-        console.log(`   From: ${req.user?.email || 'Unknown admin'}`);
-        console.log(`   To: ${to}`);
-        console.log(`   Subject: ${subject}`);
-        console.log(`   Recipient: ${recipientName}`);
-        console.log(`   Recipient ID: ${recipientId}`);
+        if (!contact) {
+            return res.status(404).json({
+                success: false,
+                message: 'Contact not found'
+            });
+        }
         
-        // Validate required fields
-        if (!to || !subject || !message) {
+        res.json({
+            success: true,
+            message: 'Contact status updated',
+            contact
+        });
+    } catch (error) {
+        console.error('❌ Error updating contact:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error updating contact',
+            error: error.message
+        });
+    }
+});
+
+// Add this DELETE route with your existing routes
+router.delete('/:id', authenticate, authorizeRoles('admin'), async (req, res) => {
+    try {
+        const contactId = req.params.id;
+        console.log(`🗑️ DELETE request for contact ID: ${contactId}`);
+        
+        // Validate MongoDB ObjectId format
+        if (!contactId.match(/^[0-9a-fA-F]{24}$/)) {
+            console.log('❌ Invalid contact ID format');
             return res.status(400).json({
                 success: false,
-                message: 'Missing required fields: to, subject, and message are required'
+                message: 'Invalid contact ID format'
+            });
+        }
+        
+        const contact = await Contact.findById(contactId);
+        
+        if (!contact) {
+            console.log('❌ Contact not found in database');
+            return res.status(404).json({
+                success: false,
+                message: 'Contact not found'
+            });
+        }
+        
+        console.log(`👤 Found contact: ${contact.name} (${contact.email})`);
+        
+        await Contact.findByIdAndDelete(contactId);
+        
+        console.log(`✅ Contact deleted successfully`);
+        
+        res.json({
+            success: true,
+            message: 'Contact deleted successfully',
+            deletedContact: {
+                id: contact._id,
+                name: contact.name,
+                email: contact.email,
+                subject: contact.subject
+            }
+        });
+    } catch (error) {
+        console.error('❌ Error deleting contact:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error deleting contact',
+            error: error.message
+        });
+    }
+});
+
+// Add reply endpoint - NOW WITH REAL EMAIL SENDING
+router.post('/reply', authenticate, authorizeRoles('admin'), async (req, res) => {
+    try {
+        const { contactId, subject, message, recipientEmail } = req.body;
+        console.log(`📧 Sending reply to contact ${contactId}`);
+        
+        // Validate required fields
+        if (!contactId || !subject || !message || !recipientEmail) {
+            return res.status(400).json({
+                success: false,
+                message: 'Missing required fields: contactId, subject, message, recipientEmail'
             });
         }
         
         // Validate email format
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(to)) {
+        if (!emailRegex.test(recipientEmail)) {
             return res.status(400).json({
                 success: false,
                 message: 'Invalid email address format'
             });
         }
         
-        // Verify user exists if recipientId provided
-        if (recipientId) {
-            const user = await User.findById(recipientId);
-            if (!user) {
-                return res.status(404).json({
-                    success: false,
-                    message: 'User not found'
-                });
-            }
+        // Find the original contact
+        const contact = await Contact.findById(contactId);
+        if (!contact) {
+            return res.status(404).json({
+                success: false,
+                message: 'Contact not found'
+            });
         }
+        
+        console.log(`📧 Reply Details:
+        To: ${recipientEmail}
+        Subject: ${subject}
+        Message: ${message}
+        Original Contact: ${contact.name} (${contact.email})`);
         
         // ✅ REAL EMAIL SENDING using NodeMailer (same config as password reset)
         const nodemailer = require('nodemailer');
@@ -297,7 +195,7 @@ router.post('/send-message', authenticate, authorizeRoles('admin'), async (req, 
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
             <div style="text-align: center; margin-bottom: 30px;">
                 <h2 style="color: #2563eb; margin: 0;">Forum Academy</h2>
-                <p style="color: #666; margin: 5px 0;">Message from Administration</p>
+                <p style="color: #666; margin: 5px 0;">Response to Your Inquiry</p>
             </div>
             
             <div style="background-color: #f8fafc; padding: 20px; border-radius: 6px; margin-bottom: 20px;">
@@ -307,13 +205,14 @@ router.post('/send-message', authenticate, authorizeRoles('admin'), async (req, 
                 </div>
             </div>
             
-            ${recipientName ? `
             <div style="border-top: 1px solid #e5e7eb; padding-top: 15px; margin-top: 20px;">
                 <p style="color: #6b7280; font-size: 14px; margin: 0;">
-                    <strong>Recipient:</strong> ${recipientName}
+                    <strong>Reference:</strong> This is a reply to your inquiry: "${contact.subject}"
+                </p>
+                <p style="color: #6b7280; font-size: 14px; margin: 5px 0;">
+                    <strong>Original message submitted:</strong> ${new Date(contact.createdAt).toLocaleDateString()}
                 </p>
             </div>
-            ` : ''}
             
             <div style="text-align: center; margin-top: 25px; padding-top: 15px; border-top: 1px solid #e5e7eb;">
                 <p style="color: #9ca3af; font-size: 12px; margin: 0;">
@@ -328,28 +227,45 @@ router.post('/send-message', authenticate, authorizeRoles('admin'), async (req, 
             console.log('📧 Attempting to send email...');
             await transporter.sendMail({
                 from: `"Forum Academy" <${process.env.EMAIL_USER}>`,
-                to: to,
+                to: recipientEmail,
                 subject: subject,
-                text: message,
+                text: message + `\n\n---\nThis is a reply to your inquiry: "${contact.subject}"`,
                 html: htmlMessage
             });
             
             console.log('✅ Email sent successfully');
             
+            // Update contact status to indicate reply was sent
+            await Contact.findByIdAndUpdate(contactId, {
+                status: 'resolved',
+                repliedAt: new Date(),
+                replySubject: subject,
+                replyMessage: message
+            });
+            
             res.json({
                 success: true,
-                message: 'Message sent successfully via email',
+                message: 'Reply sent successfully via email',
                 details: {
-                    recipient: to,
+                    recipient: recipientEmail,
                     subject: subject,
-                    recipientName: recipientName,
-                    sentBy: req.user?.email,
-                    timestamp: new Date().toISOString()
+                    originalInquiry: contact.subject,
+                    sentAt: new Date().toISOString()
                 }
             });
             
         } catch (emailError) {
             console.error('❌ Error sending email:', emailError);
+            
+            // Still update the status but indicate email failed
+            await Contact.findByIdAndUpdate(contactId, {
+                status: 'resolved',
+                repliedAt: new Date(),
+                replySubject: subject,
+                replyMessage: message,
+                emailSent: false,
+                emailError: emailError.message
+            });
             
             return res.status(500).json({
                 success: false,
@@ -363,268 +279,14 @@ router.post('/send-message', authenticate, authorizeRoles('admin'), async (req, 
         }
         
     } catch (error) {
-        console.error('❌ Error sending message:', error);
+        console.error('❌ Error sending reply:', error);
         res.status(500).json({
             success: false,
-            message: 'Error sending message',
+            message: 'Error sending reply',
             error: error.message
         });
     }
 });
 
+console.log('✅ contactRoutes.js loaded successfully');
 module.exports = router;
-
-// const express = require('express');
-// const router = express.Router();
-// const { register, login } = require('../controllers/authController');
-// const { authenticate, authorizeRoles } = require('../middleware/authMiddleware');
-// const User = require('../models/User');
-
-// // Import password reset controller functions
-// const {
-//     forgotPassword,
-//     verifyOTP,
-//     resendOTP,
-//     resetPassword
-// } = require('../controllers/passwordResetController');
-
-// // Registration and Login Routes
-// router.post('/register', register);
-// router.post('/login', login);
-
-// // Password Reset Routes
-// router.post('/forgot-password', forgotPassword);
-// router.post('/verify-otp', verifyOTP);
-// router.post('/resend-otp', resendOTP);
-// router.post('/reset-password', resetPassword);
-
-// // Test route
-// router.get('/test', (req, res) => {
-//     res.json({ 
-//         message: 'Auth routes are working',
-//         timestamp: new Date().toISOString()
-//     });
-// });
-
-// // Admin route to approve a user by ID
-// router.put('/approve/:id', authenticate, authorizeRoles('admin'), async (req, res) => {
-//     try {
-//         const user = await User.findByIdAndUpdate(req.params.id, { isApproved: true }, { new: true });
-//         if (!user) return res.status(404).json({ message: 'User not found' });
-//         res.json({ 
-//             message: `${user.email} has been approved`, 
-//             user: { 
-//                 id: user._id, 
-//                 email: user.email, 
-//                 role: user.role, 
-//                 isApproved: user.isApproved 
-//             } 
-//         });
-//     } catch (err) {
-//         console.error('Approval error:', err);
-//         res.status(500).json({ message: 'Approval failed' });
-//     }
-// });
-
-// // Admin route to reject/delete a user by ID
-// router.delete('/reject/:id', authenticate, authorizeRoles('admin'), async (req, res) => {
-//     try {
-//         const user = await User.findByIdAndDelete(req.params.id);
-//         if (!user) return res.status(404).json({ message: 'User not found' });
-//         res.json({ message: `${user.email} has been rejected and removed` });
-//     } catch (err) {
-//         console.error('Rejection error:', err);
-//         res.status(500).json({ message: 'Rejection failed' });
-//     }
-// });
-
-// // Admin route to fetch all pending users
-// router.get('/pending', authenticate, authorizeRoles('admin'), async (req, res) => {
-//     try {
-//         const pendingUsers = await User.find({ isApproved: false }).select('-password');
-//         res.json({
-//             message: 'Pending users retrieved successfully',
-//             users: pendingUsers,
-//             count: pendingUsers.length
-//         });
-//     } catch (err) {
-//         console.error('Fetch pending users error:', err);
-//         res.status(500).json({ message: 'Failed to fetch pending users' });
-//     }
-// });
-
-// // Admin route to fetch all users
-// router.get('/users', authenticate, authorizeRoles('admin'), async (req, res) => {
-//     try {
-//         const { role, approved } = req.query;
-        
-//         let filter = {};
-//         if (role) filter.role = role;
-//         if (approved !== undefined) filter.isApproved = approved === 'true';
-        
-//         const users = await User.find(filter).select('-password').sort({ createdAt: -1 });
-//         res.json({
-//             message: 'Users retrieved successfully',
-//             users,
-//             count: users.length
-//         });
-//     } catch (err) {
-//         console.error('Fetch users error:', err);
-//         res.status(500).json({ message: 'Failed to fetch users' });
-//     }
-// });
-
-// // Get current user info
-// router.get('/me', authenticate, async (req, res) => {
-//     try {
-//         const user = await User.findById(req.user.id).select('-password');
-//         if (!user) {
-//             return res.status(404).json({ message: 'User not found' });
-//         }
-//         res.json({
-//             message: 'User info retrieved successfully',
-//             user: {
-//                 id: user._id,
-//                 email: user.email,
-//                 firstName: user.firstName,
-//                 lastName: user.lastName,
-//                 role: user.role,
-//                 isApproved: user.isApproved,
-//                 createdAt: user.createdAt
-//             }
-//         });
-//     } catch (err) {
-//         console.error('Get user info error:', err);
-//         res.status(500).json({ message: 'Server error' });
-//     }
-// });
-
-// // Check approval status for a specific email
-// router.get('/check-approval/:email', async (req, res) => {
-//     try {
-//         const user = await User.findOne({ email: req.params.email }).select('-password');
-//         if (!user) {
-//             return res.status(404).json({ message: 'User not found' });
-//         }
-//         res.json({
-//             message: 'User status retrieved successfully',
-//             user: {
-//                 email: user.email,
-//                 isApproved: user.isApproved,
-//                 role: user.role,
-//                 createdAt: user.createdAt
-//             }
-//         });
-//     } catch (err) {
-//         console.error('Check approval error:', err);
-//         res.status(500).json({ message: 'Server error' });
-//     }
-// });
-
-// // Verify token endpoint
-// router.get('/verify', authenticate, async (req, res) => {
-//     try {
-//         res.json({
-//             message: 'Token is valid',
-//             user: {
-//                 id: req.user.id,
-//                 email: req.user.email,
-//                 role: req.user.role,
-//                 isApproved: req.user.isApproved
-//             }
-//         });
-//     } catch (err) {
-//         console.error('Token verification error:', err);
-//         res.status(500).json({ message: 'Token verification failed' });
-//     }
-// });
-
-// // Change password
-// router.put('/change-password', authenticate, async (req, res) => {
-//     try {
-//         const { currentPassword, newPassword } = req.body;
-        
-//         if (!currentPassword || !newPassword) {
-//             return res.status(400).json({ message: 'Current password and new password are required' });
-//         }
-        
-//         if (newPassword.length < 6) {
-//             return res.status(400).json({ message: 'New password must be at least 6 characters long' });
-//         }
-        
-//         const user = await User.findById(req.user.id);
-//         if (!user) {
-//             return res.status(404).json({ message: 'User not found' });
-//         }
-        
-//         const isMatch = await user.comparePassword(currentPassword);
-//         if (!isMatch) {
-//             return res.status(400).json({ message: 'Current password is incorrect' });
-//         }
-        
-//         user.password = newPassword;
-//         await user.save();
-        
-//         res.json({ message: 'Password changed successfully' });
-//     } catch (err) {
-//         console.error('Change password error:', err);
-//         res.status(500).json({ message: 'Failed to change password' });
-//     }
-// });
-
-// // Admin route to create user accounts
-// router.post('/create-user', authenticate, authorizeRoles('admin'), async (req, res) => {
-//     try {
-//         const { firstName, lastName, email, password, role } = req.body;
-        
-//         // Validate input
-//         if (!firstName || !lastName || !email || !password || !role) {
-//             return res.status(400).json({ message: 'All fields are required' });
-//         }
-        
-//         if (!['student', 'teacher', 'admin'].includes(role)) {
-//             return res.status(400).json({ message: 'Invalid role specified' });
-//         }
-        
-//         // Check if user already exists
-//         const existingUser = await User.findOne({ email: email.toLowerCase() });
-//         if (existingUser) {
-//             return res.status(400).json({ message: 'User already exists with this email' });
-//         }
-        
-//         const user = new User({
-//             firstName,
-//             lastName,
-//             email: email.toLowerCase(),
-//             password,
-//             role,
-//             isApproved: true // Admin-created users are pre-approved
-//         });
-        
-//         await user.save();
-        
-//         res.status(201).json({
-//             message: `${role} account created successfully`,
-//             user: {
-//                 id: user._id,
-//                 email: user.email,
-//                 firstName: user.firstName,
-//                 lastName: user.lastName,
-//                 role: user.role,
-//                 isApproved: user.isApproved
-//             }
-//         });
-//     } catch (err) {
-//         console.error('Create user error:', err);
-//         res.status(500).json({ message: 'Failed to create user' });
-//     }
-// });
-
-// module.exports = router;
-
-// const express = require('express');
-// const router = express.Router();
-
-// router.get('/test', (req, res) => res.json({ message: 'Test OK' }));
-
-// module.exports = router;
