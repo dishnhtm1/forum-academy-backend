@@ -87,6 +87,14 @@ try {
 } catch (error) {
     console.error('❌ Failed to load admin routes:', error.message);
 }
+try {
+    const courseMaterialRoutes = require('./routes/courseMaterialRoutes');
+    app.use('/api/course-materials', courseMaterialRoutes);
+    console.log('✅ Course material routes loaded and mounted');
+} catch (error) {
+    console.error('❌ Failed to load course material routes:', error.message);
+}
+
 
 console.log('🔧 All routes loaded successfully');
 
