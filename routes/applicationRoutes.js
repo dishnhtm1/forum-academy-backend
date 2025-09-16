@@ -677,6 +677,7 @@ const express = require('express');
 const router = express.Router();
 const Application = require('../models/Application');
 const { authenticate, authorizeRoles } = require('../middleware/authMiddleware');
+const { submitApplication, getAllApplications, updateApplicationStatus, replyToApplication } = require('../controllers/applicationController');
 
 console.log('🔧 Loading applicationRoutes.js...');
 
@@ -1040,5 +1041,8 @@ router.post('/send-message', authenticate, authorizeRoles('admin'), async (req, 
         });
     }
 });
+
+// Add new route using controller
+router.post('/:id/reply', authenticate, authorizeRoles('admin'), replyToApplication);
 
 module.exports = router;

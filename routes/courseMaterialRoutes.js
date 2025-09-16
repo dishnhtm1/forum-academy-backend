@@ -4,6 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const CourseMaterial = require('../models/CourseMaterial');
+const Course = require('../models/Course'); // Add Course model
 const { protect, authorize } = require('../middleware/authMiddleware');
 
 // Configure multer for file uploads

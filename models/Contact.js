@@ -49,6 +49,15 @@ const ContactSchema = new mongoose.Schema({
         enum: ['pending', 'resolved', 'approved', 'ignored'],
         default: 'pending'
     },
+    repliedAt: {
+        type: Date
+    },
+    replySubject: {
+        type: String
+    },
+    replyMessage: {
+        type: String
+    },
     createdAt: {
         type: Date,
         default: Date.now

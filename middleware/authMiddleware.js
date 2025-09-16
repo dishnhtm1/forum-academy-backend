@@ -129,9 +129,15 @@ const authorizeRoles = (...roles) => {
             return res.status(401).json({ message: 'User not authenticated' });
         }
         
+        console.log('🔍 Authorization Check:');
+        console.log('  - User ID:', req.user._id);
+        console.log('  - User Role:', req.user.role);
+        console.log('  - Required Roles:', roles);
+        console.log('  - Role Match:', roles.includes(req.user.role));
+        
         if (!roles.includes(req.user.role)) {
             return res.status(403).json({ 
-                message: `Role ${req.user.role} is not authorized to access this resource. Required: ${roles.join(' or ')}` 
+                message: `Role ${req.user.role} is not authorized to access this resource. Required: ${roles.join(',')}` 
             });
         }
         next();
@@ -139,4 +145,11 @@ const authorizeRoles = (...roles) => {
 };
 
 console.log('✅ authMiddleware.js loaded successfully');
-module.exports = { authenticate, authorizeRoles };
+
+// Export both naming conventions for compatibility
+module.exports = { 
+    authenticate, 
+    authorizeRoles,
+    protect: authenticate,  // Alternative name
+    authorize: authorizeRoles  // Alternative name
+};

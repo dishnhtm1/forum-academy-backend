@@ -1,68 +1,194 @@
-const mongoose = require('mongoose');
+// const mongoose = require('mongoose');
+// const bcrypt = require('bcryptjs');
 
-const quizSubmissionSchema = new mongoose.Schema({
-  quiz: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Quiz',
+// const userSchema = new mongoose.Schema({
+//   firstName: { 
+//     type: String,
+//     trim: true
+//   },
+//   lastName: { 
+//     type: String,
+//     trim: true
+//   },
+//   email: { 
+//     type: String, 
+//     required: true, 
+//     unique: true,
+//     trim: true,
+//     lowercase: true
+//   },
+//   password: { 
+//     type: String, 
+//     required: true 
+//   },
+//   role: {
+//     type: String,
+//     enum: ['student', 'teacher', 'admin'],
+//     required: true
+//   },
+//   isApproved: {
+//     type: Boolean,
+//     default: false // must be true to login
+//   },
+//       // Password reset fields
+//     resetPasswordToken: String,
+//     resetPasswordExpires: Date,
+//     otp: String,
+//     otpExpires: Date,
+//     isEmailVerified: {
+//         type: Boolean,
+//         default: false
+//     }
+// }, { timestamps: true });
+
+// // Hash password before saving
+// userSchema.pre('save', async function(next) {
+//     if (!this.isModified('password')) return next();
+    
+//     try {
+//         const salt = await bcrypt.genSalt(10);
+//         this.password = await bcrypt.hash(this.password, salt);
+//         next();
+//     } catch (error) {
+//         next(error);
+//     }
+// });
+
+// // Compare password method
+// userSchema.methods.comparePassword = async function(candidatePassword) {
+//     return await bcrypt.compare(candidatePassword, this.password);
+// };
+
+// module.exports = mongoose.model('User', userSchema);
+
+const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
+
+const userSchema = new mongoose.Schema({
+  firstName: { 
+    type: String,
+    trim: true
+  },
+  lastName: { 
+    type: String,
+    trim: true
+  },
+  email: { 
+    type: String, 
+    required: true, 
+    unique: true,
+    trim: true,
+    lowercase: true
+  },
+  password: { 
+    type: String, 
+    required: true 
+  },
+  role: {
+    type: String,
+    enum: ['superadmin', 'admin', 'faculty', 'teacher', 'student'],
     required: true
   },
-  student: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-  answers: [{
-    questionId: mongoose.Schema.Types.ObjectId,
-    answer: mongoose.Schema.Types.Mixed, // can be string or array for multiple choice
-    isCorrect: Boolean,
-    pointsEarned: {
-      type: Number,
-      default: 0
-    }
-  }],
-  score: {
-    type: Number,
-    default: 0
-  },
-  percentage: {
-    type: Number,
-    default: 0
-  },
-  timeSpent: {
-    type: Number, // in seconds
-    default: 0
-  },
-  startedAt: {
-    type: Date,
-    default: Date.now
-  },
-  submittedAt: {
-    type: Date,
-    default: Date.now
-  },
-  attemptNumber: {
-    type: Number,
-    default: 1
-  },
-  isCompleted: {
+  isApproved: {
     type: Boolean,
-    default: false
+    default: false // ✅ All users require approval by default
   },
-  feedback: {
-    type: String
-  },
-  gradedBy: {
+  approvedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   },
-  gradedAt: {
+  approvedAt: {
     type: Date
+  },
+  rejectedAt: {
+    type: Date
+  },
+  rejectionReason: {
+    type: String
+  },
+  // Additional profile fields
+  phone: {
+    type: String,
+    trim: true
+  },
+  dateOfBirth: {
+    type: Date
+  },
+  address: {
+    type: String,
+    trim: true
+  },
+  nationality: {
+    type: String,
+    trim: true
+  },
+  // Teacher-specific fields
+  qualifications: {
+    type: String,
+    trim: true
+  },
+  experience: {
+    type: String,
+    trim: true
+  },
+  specialization: {
+    type: String,
+    trim: true
+  },
+  // Student-specific fields
+  currentEducation: {
+    type: String,
+    trim: true
+  },
+  japaneseLevel: {
+    type: String,
+    enum: ['beginner', 'elementary', 'intermediate', 'advanced', 'native'],
+    trim: true
+  },
+  studyGoals: {
+    type: String,
+    trim: true
+  },
+  // Common fields
+  bio: {
+    type: String,
+    trim: true
+  },
+  profileImage: {
+    type: String,
+    trim: true
+  },
+  // Password reset fields
+  resetPasswordToken: String,
+  resetPasswordExpires: Date,
+  otp: String,
+  otpExpires: Date,
+  isEmailVerified: {
+    type: Boolean,
+    default: false
   }
-}, {
-  timestamps: true
+}, { timestamps: true });
+
+// Hash password before saving
+userSchema.pre('save', async function(next) {
+    if (!this.isModified('password')) return next();
+    
+    try {
+        const salt = await bcrypt.genSalt(10);
+        this.password = await bcrypt.hash(this.password, salt);
+        next();
+    } catch (error) {
+        next(error);
+    }
 });
 
-// Compound index to ensure unique submissions per attempt
-quizSubmissionSchema.index({ quiz: 1, student: 1, attemptNumber: 1 }, { unique: true });
+// ✅ Make sure both method names work
+userSchema.methods.comparePassword = async function(candidatePassword) {
+    return await bcrypt.compare(candidatePassword, this.password);
+};
 
-module.exports = mongoose.model('QuizSubmission', quizSubmissionSchema);
+userSchema.methods.matchPassword = async function(candidatePassword) {
+    return await bcrypt.compare(candidatePassword, this.password);
+};
+
+module.exports = mongoose.model('User', userSchema);
