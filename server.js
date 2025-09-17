@@ -5,6 +5,9 @@ const dotenv = require('dotenv');
 dotenv.config();
 const connectDB = require('./config/db');
 const errorHandler = require('./middleware/errorMiddleware');
+const userRoutes = require('./routes/userRoutes');
+app.use('/api/users', userRoutes);
+
 
 // Initialize Express app
 const app = express();
@@ -132,6 +135,22 @@ try {
   console.log('✅ Analytics routes loaded and mounted');
 } catch (err) {
   console.error('❌ Failed to load analytics routes:', err.message);
+}
+
+try {
+  const homeworkRoutes = require('./routes/homeworkRoutes');
+  app.use('/api/homework', homeworkRoutes);
+  console.log('✅ Homework routes loaded and mounted');
+} catch (err) {
+  console.error('❌ Failed to load homework routes:', err.message);
+}
+
+try {
+  const listeningExerciseRoutes = require('./routes/listeningExerciseRoutes');
+  app.use('/api/listening-exercises', listeningExerciseRoutes);
+  console.log('✅ Listening exercise routes loaded and mounted');
+} catch (err) {
+  console.error('❌ Failed to load listening exercise routes:', err.message);
 }
 
 
