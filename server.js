@@ -5,17 +5,14 @@ const dotenv = require('dotenv');
 dotenv.config();
 const connectDB = require('./config/db');
 const errorHandler = require('./middleware/errorMiddleware');
-const userRoutes = require('./routes/userRoutes');
-app.use('/api/users', userRoutes);
 
-
-// Initialize Express app
+// 1️⃣ Initialize Express FIRST
 const app = express();
 
-// Connect to MongoDB
+// 2️⃣ Connect to MongoDB
 connectDB();
 
-// Configure CORS for Azure & local dev
+// 3️⃣ Configure CORS for Azure & local dev
 app.use(cors({
   origin: [
     'http://localhost:3000',
@@ -27,16 +24,16 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// Parse JSON
+// 4️⃣ Parse JSON
 app.use(express.json());
 
-// Request logger
+// 5️⃣ Request logger
 app.use((req, res, next) => {
   console.log(`📥 ${req.method} ${req.path} - ${new Date().toISOString()}`);
   next();
 });
 
-// Health check
+// 6️⃣ Health check & root
 app.get('/api/health', (req, res) => {
   res.json({
     message: 'Server is running',
@@ -56,14 +53,13 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Root
 app.get('/', (req, res) => {
   res.send('✅ Backend is running with all routes.');
 });
 
 console.log('🔧 Loading routes...');
 
-// === Existing routes ===
+// === Load and mount all routes AFTER app exists ===
 try {
   const authRoutes = require('./routes/authRoutes');
   app.use('/api/auth', authRoutes);
@@ -112,7 +108,6 @@ try {
   console.error('❌ Failed to load course material routes:', err.message);
 }
 
-// === NEW placeholder routes ===
 try {
   const courseRoutes = require('./routes/courseRoutes');
   app.use('/api/courses', courseRoutes);
@@ -153,21 +148,12 @@ try {
   console.error('❌ Failed to load listening exercise routes:', err.message);
 }
 
-
-try {
-  const homeworkRoutes = require('./routes/homeworkRoutes');
-  app.use('/api/homework', homeworkRoutes);
-  console.log('✅ Homework routes loaded and mounted');
-} catch (err) {
-  console.error('❌ Failed to load homework routes:', err.message);
-}
-
 console.log('🔧 All routes loaded successfully');
 
-// Global error handler
+// 7️⃣ Global error handler
 app.use(errorHandler);
 
-// 404 handler
+// 8️⃣ 404 handler
 app.use((req, res) => {
   console.log(`❌ 404 - Route not found: ${req.method} ${req.originalUrl}`);
   res.status(404).json({
@@ -190,7 +176,7 @@ app.use((req, res) => {
   });
 });
 
-// Start server
+// 9️⃣ Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
@@ -201,6 +187,7 @@ app.listen(PORT, () => {
 });
 
 module.exports = app;
+
 
 // const express = require('express');
 // const cors = require('cors');
