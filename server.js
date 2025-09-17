@@ -127,6 +127,15 @@ try {
 }
 
 try {
+  const analyticsRoutes = require('./routes/analyticsRoutes');
+  app.use('/api/analytics', analyticsRoutes);
+  console.log('✅ Analytics routes loaded and mounted');
+} catch (err) {
+  console.error('❌ Failed to load analytics routes:', err.message);
+}
+
+
+try {
   const homeworkRoutes = require('./routes/homeworkRoutes');
   app.use('/api/homework', homeworkRoutes);
   console.log('✅ Homework routes loaded and mounted');
