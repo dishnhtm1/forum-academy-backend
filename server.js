@@ -124,6 +124,7 @@ try {
   console.error('❌ Failed to load quiz routes:', err.message);
 }
 
+
 try {
   const analyticsRoutes = require('./routes/analyticsRoutes');
   app.use('/api/analytics', analyticsRoutes);
