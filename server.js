@@ -1,3 +1,4 @@
+// server.js
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
@@ -5,132 +6,307 @@ dotenv.config();
 const connectDB = require('./config/db');
 const errorHandler = require('./middleware/errorMiddleware');
 
-// Initialize Express app FIRST!
+// Initialize Express app
 const app = express();
 
-// Connect to DB
+// Connect to MongoDB
 connectDB();
 
-// CORS for Azure & dev
+// Configure CORS for Azure & local dev
 app.use(cors({
-    origin: [
-        'http://localhost:3000',
-        'https://icy-moss-00f282010.1.azurestaticapps.net',
-        process.env.CLIENT_URL
-    ].filter(Boolean),
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+  origin: [
+    'http://localhost:3000',
+    'https://icy-moss-00f282010.1.azurestaticapps.net',
+    process.env.CLIENT_URL
+  ].filter(Boolean),
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
+// Parse JSON
 app.use(express.json());
 
 // Request logger
 app.use((req, res, next) => {
-    console.log(`📥 ${req.method} ${req.path} - ${new Date().toISOString()}`);
-    next();
+  console.log(`📥 ${req.method} ${req.path} - ${new Date().toISOString()}`);
+  next();
 });
 
-// Health check & root
+// Health check
 app.get('/api/health', (req, res) => {
-    res.json({
-        message: 'Server is running',
-        status: 'OK',
-        timestamp: new Date().toISOString(),
-        routes: ['auth', 'applications', 'contact', 'admin', 'users']
-    });
+  res.json({
+    message: 'Server is running',
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    routes: [
+      '/api/auth',
+      '/api/applications',
+      '/api/contact',
+      '/api/users',
+      '/api/admin',
+      '/api/course-materials',
+      '/api/courses',
+      '/api/quizzes',
+      '/api/homework'
+    ]
+  });
 });
 
+// Root
 app.get('/', (req, res) => {
-    res.send('✅ Backend is running with all routes.');
+  res.send('✅ Backend is running with all routes.');
 });
 
-// Load routes
 console.log('🔧 Loading routes...');
 
+// === Existing routes ===
 try {
-    const authRoutes = require('./routes/authRoutes');
-    app.use('/api/auth', authRoutes);
-    console.log('✅ Auth routes loaded and mounted');
-} catch (error) {
-    console.error('❌ Failed to load auth routes:', error.message);
+  const authRoutes = require('./routes/authRoutes');
+  app.use('/api/auth', authRoutes);
+  console.log('✅ Auth routes loaded and mounted');
+} catch (err) {
+  console.error('❌ Failed to load auth routes:', err.message);
 }
 
 try {
-    const applicationRoutes = require('./routes/applicationRoutes');
-    app.use('/api/applications', applicationRoutes);
-    console.log('✅ Application routes loaded and mounted');
-} catch (error) {
-    console.error('❌ Failed to load application routes:', error.message);
+  const applicationRoutes = require('./routes/applicationRoutes');
+  app.use('/api/applications', applicationRoutes);
+  console.log('✅ Application routes loaded and mounted');
+} catch (err) {
+  console.error('❌ Failed to load application routes:', err.message);
 }
 
 try {
-    const contactRoutes = require('./routes/contactRoutes');
-    app.use('/api/contact', contactRoutes);
-    console.log('✅ Contact routes loaded and mounted');
-} catch (error) {
-    console.error('❌ Failed to load contact routes:', error.message);
+  const contactRoutes = require('./routes/contactRoutes');
+  app.use('/api/contact', contactRoutes);
+  console.log('✅ Contact routes loaded and mounted');
+} catch (err) {
+  console.error('❌ Failed to load contact routes:', err.message);
 }
 
 try {
-    const userRoutes = require('./routes/userRoutes');
-    app.use('/api/users', userRoutes);
-    console.log('✅ User routes loaded and mounted');
-} catch (error) {
-    console.error('❌ Failed to load user routes:', error.message);
+  const userRoutes = require('./routes/userRoutes');
+  app.use('/api/users', userRoutes);
+  console.log('✅ User routes loaded and mounted');
+} catch (err) {
+  console.error('❌ Failed to load user routes:', err.message);
 }
 
 try {
-    const adminRoutes = require('./routes/adminRoutes');
-    app.use('/api/admin', adminRoutes);
-    console.log('✅ Admin routes loaded and mounted');
-} catch (error) {
-    console.error('❌ Failed to load admin routes:', error.message);
-}
-try {
-    const courseMaterialRoutes = require('./routes/courseMaterialRoutes');
-    app.use('/api/course-materials', courseMaterialRoutes);
-    console.log('✅ Course material routes loaded and mounted');
-} catch (error) {
-    console.error('❌ Failed to load course material routes:', error.message);
+  const adminRoutes = require('./routes/adminRoutes');
+  app.use('/api/admin', adminRoutes);
+  console.log('✅ Admin routes loaded and mounted');
+} catch (err) {
+  console.error('❌ Failed to load admin routes:', err.message);
 }
 
+try {
+  const courseMaterialRoutes = require('./routes/courseMaterialRoutes');
+  app.use('/api/course-materials', courseMaterialRoutes);
+  console.log('✅ Course material routes loaded and mounted');
+} catch (err) {
+  console.error('❌ Failed to load course material routes:', err.message);
+}
+
+// === NEW placeholder routes ===
+try {
+  const courseRoutes = require('./routes/courseRoutes');
+  app.use('/api/courses', courseRoutes);
+  console.log('✅ Course routes loaded and mounted');
+} catch (err) {
+  console.error('❌ Failed to load course routes:', err.message);
+}
+
+try {
+  const quizRoutes = require('./routes/quizRoutes');
+  app.use('/api/quizzes', quizRoutes);
+  console.log('✅ Quiz routes loaded and mounted');
+} catch (err) {
+  console.error('❌ Failed to load quiz routes:', err.message);
+}
+
+try {
+  const homeworkRoutes = require('./routes/homeworkRoutes');
+  app.use('/api/homework', homeworkRoutes);
+  console.log('✅ Homework routes loaded and mounted');
+} catch (err) {
+  console.error('❌ Failed to load homework routes:', err.message);
+}
 
 console.log('🔧 All routes loaded successfully');
 
-// Error middleware
+// Global error handler
 app.use(errorHandler);
 
 // 404 handler
 app.use((req, res) => {
-    console.log(`❌ 404 - Route not found: ${req.method} ${req.originalUrl}`);
-    res.status(404).json({
-        message: 'Route not found',
-        method: req.method,
-        path: req.originalUrl,
-        timestamp: new Date().toISOString(),
-        availableRoutes: [
-            '/api/health',
-            '/api/auth/*',
-            '/api/applications/*',
-            '/api/contact/*',
-            '/api/admin/*',
-            '/api/users/*'
-        ]
-    });
+  console.log(`❌ 404 - Route not found: ${req.method} ${req.originalUrl}`);
+  res.status(404).json({
+    message: 'Route not found',
+    method: req.method,
+    path: req.originalUrl,
+    timestamp: new Date().toISOString(),
+    availableRoutes: [
+      '/api/health',
+      '/api/auth/*',
+      '/api/applications/*',
+      '/api/contact/*',
+      '/api/users/*',
+      '/api/admin/*',
+      '/api/course-materials/*',
+      '/api/courses/*',
+      '/api/quizzes/*',
+      '/api/homework/*'
+    ]
+  });
 });
 
 // Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`📍 Server URL: ${process.env.NODE_ENV === 'production'
-        ? 'https://forum-backend-cnfrb6eubggucqda.canadacentral-01.azurewebsites.net'
-        : `http://localhost:${PORT}`}`);
-    console.log('🔧 Routes loaded, server ready!');
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📍 Server URL: ${process.env.NODE_ENV === 'production'
+    ? 'https://forum-backend-cnfrb6eubggucqda.canadacentral-01.azurewebsites.net'
+    : `http://localhost:${PORT}`}`);
+  console.log('🔧 Routes loaded, server ready!');
 });
 
 module.exports = app;
+
+// const express = require('express');
+// const cors = require('cors');
+// const dotenv = require('dotenv');
+// dotenv.config();
+// const connectDB = require('./config/db');
+// const errorHandler = require('./middleware/errorMiddleware');
+
+// // Initialize Express app FIRST!
+// const app = express();
+
+// // Connect to DB
+// connectDB();
+
+// // CORS for Azure & dev
+// app.use(cors({
+//     origin: [
+//         'http://localhost:3000',
+//         'https://icy-moss-00f282010.1.azurestaticapps.net',
+//         process.env.CLIENT_URL
+//     ].filter(Boolean),
+//     credentials: true,
+//     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+//     allowedHeaders: ['Content-Type', 'Authorization']
+// }));
+
+// app.use(express.json());
+
+// // Request logger
+// app.use((req, res, next) => {
+//     console.log(`📥 ${req.method} ${req.path} - ${new Date().toISOString()}`);
+//     next();
+// });
+
+// // Health check & root
+// app.get('/api/health', (req, res) => {
+//     res.json({
+//         message: 'Server is running',
+//         status: 'OK',
+//         timestamp: new Date().toISOString(),
+//         routes: ['auth', 'applications', 'contact', 'admin', 'users']
+//     });
+// });
+
+// app.get('/', (req, res) => {
+//     res.send('✅ Backend is running with all routes.');
+// });
+
+// // Load routes
+// console.log('🔧 Loading routes...');
+
+// try {
+//     const authRoutes = require('./routes/authRoutes');
+//     app.use('/api/auth', authRoutes);
+//     console.log('✅ Auth routes loaded and mounted');
+// } catch (error) {
+//     console.error('❌ Failed to load auth routes:', error.message);
+// }
+
+// try {
+//     const applicationRoutes = require('./routes/applicationRoutes');
+//     app.use('/api/applications', applicationRoutes);
+//     console.log('✅ Application routes loaded and mounted');
+// } catch (error) {
+//     console.error('❌ Failed to load application routes:', error.message);
+// }
+
+// try {
+//     const contactRoutes = require('./routes/contactRoutes');
+//     app.use('/api/contact', contactRoutes);
+//     console.log('✅ Contact routes loaded and mounted');
+// } catch (error) {
+//     console.error('❌ Failed to load contact routes:', error.message);
+// }
+
+// try {
+//     const userRoutes = require('./routes/userRoutes');
+//     app.use('/api/users', userRoutes);
+//     console.log('✅ User routes loaded and mounted');
+// } catch (error) {
+//     console.error('❌ Failed to load user routes:', error.message);
+// }
+
+// try {
+//     const adminRoutes = require('./routes/adminRoutes');
+//     app.use('/api/admin', adminRoutes);
+//     console.log('✅ Admin routes loaded and mounted');
+// } catch (error) {
+//     console.error('❌ Failed to load admin routes:', error.message);
+// }
+// try {
+//     const courseMaterialRoutes = require('./routes/courseMaterialRoutes');
+//     app.use('/api/course-materials', courseMaterialRoutes);
+//     console.log('✅ Course material routes loaded and mounted');
+// } catch (error) {
+//     console.error('❌ Failed to load course material routes:', error.message);
+// }
+
+
+// console.log('🔧 All routes loaded successfully');
+
+// // Error middleware
+// app.use(errorHandler);
+
+// // 404 handler
+// app.use((req, res) => {
+//     console.log(`❌ 404 - Route not found: ${req.method} ${req.originalUrl}`);
+//     res.status(404).json({
+//         message: 'Route not found',
+//         method: req.method,
+//         path: req.originalUrl,
+//         timestamp: new Date().toISOString(),
+//         availableRoutes: [
+//             '/api/health',
+//             '/api/auth/*',
+//             '/api/applications/*',
+//             '/api/contact/*',
+//             '/api/admin/*',
+//             '/api/users/*'
+//         ]
+//     });
+// });
+
+// // Start server
+// const PORT = process.env.PORT || 5000;
+// app.listen(PORT, () => {
+//     console.log(`🚀 Server running on port ${PORT}`);
+//     console.log(`📍 Server URL: ${process.env.NODE_ENV === 'production'
+//         ? 'https://forum-backend-cnfrb6eubggucqda.canadacentral-01.azurewebsites.net'
+//         : `http://localhost:${PORT}`}`);
+//     console.log('🔧 Routes loaded, server ready!');
+// });
+
+// module.exports = app;
 
 
 
