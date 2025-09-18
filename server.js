@@ -5,6 +5,7 @@ const dotenv = require('dotenv');
 dotenv.config();
 const connectDB = require('./config/db');
 const errorHandler = require('./middleware/errorMiddleware');
+app.options('*', cors());
 
 // 1️⃣ Initialize Express FIRST
 const app = express();
