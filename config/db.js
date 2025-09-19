@@ -101,4 +101,3 @@ const createDefaultAdminIfNeeded = async () => {
 };
 
 module.exports = connectDB;
-

@@ -86,12 +86,77 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['student', 'teacher', 'admin'],
+    enum: ['superadmin', 'admin', 'faculty', 'teacher', 'student'],
     required: true
   },
   isApproved: {
     type: Boolean,
     default: false // ✅ All users require approval by default
+  },
+  approvedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  approvedAt: {
+    type: Date
+  },
+  rejectedAt: {
+    type: Date
+  },
+  rejectionReason: {
+    type: String
+  },
+  // Additional profile fields
+  phone: {
+    type: String,
+    trim: true
+  },
+  dateOfBirth: {
+    type: Date
+  },
+  address: {
+    type: String,
+    trim: true
+  },
+  nationality: {
+    type: String,
+    trim: true
+  },
+  // Teacher-specific fields
+  qualifications: {
+    type: String,
+    trim: true
+  },
+  experience: {
+    type: String,
+    trim: true
+  },
+  specialization: {
+    type: String,
+    trim: true
+  },
+  // Student-specific fields
+  currentEducation: {
+    type: String,
+    trim: true
+  },
+  japaneseLevel: {
+    type: String,
+    enum: ['beginner', 'elementary', 'intermediate', 'advanced', 'native'],
+    trim: true
+  },
+  studyGoals: {
+    type: String,
+    trim: true
+  },
+  // Common fields
+  bio: {
+    type: String,
+    trim: true
+  },
+  profileImage: {
+    type: String,
+    trim: true
   },
   // Password reset fields
   resetPasswordToken: String,

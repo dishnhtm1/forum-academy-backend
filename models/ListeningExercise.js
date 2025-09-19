@@ -21,11 +21,16 @@ const listeningExerciseSchema = new mongoose.Schema({
     required: true
   },
   audioFile: {
-    fileName: String,
-    filePath: String,
-    fileSize: Number,
-    duration: Number, // in seconds
-    mimeType: String
+    filename: String,        // generated filename
+    originalName: String,    // original uploaded filename
+    gridfsId: mongoose.Schema.Types.ObjectId, // GridFS file ID for large files
+    size: Number,           // file size in bytes
+    mimetype: String,       // audio/mpeg, audio/wav, etc.
+    uploadDate: {
+      type: Date,
+      default: Date.now
+    },
+    duration: Number        // in seconds (optional metadata)
   },
   transcript: {
     type: String // full transcript for reference

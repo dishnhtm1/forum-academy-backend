@@ -97,7 +97,11 @@ console.log('🔧 Loading authMiddleware.js...');
 
 const authenticate = async (req, res, next) => {
     try {
-        const token = req.header('Authorization')?.replace('Bearer ', '');
+        const authHeader = req.header('Authorization');
+        console.log('🔍 Auth header received:', authHeader ? 'Present' : 'Missing');
+        
+        const token = authHeader?.replace('Bearer ', '');
+        console.log('🔍 Token extracted:', token ? `${token.substring(0, 20)}...` : 'No token');
         
         if (!token) {
             return res.status(401).json({ message: 'No token, authorization denied' });
