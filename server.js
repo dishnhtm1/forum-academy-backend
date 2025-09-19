@@ -20,7 +20,6 @@ app.use(cors({
     origin: [
         'http://localhost:3000', 
         'http://localhost:3001',
-        'https://wonderful-meadow-0e35b381e.6.azurestaticapps.net',
         'https://icy-moss-00f282010.1.azurestaticapps.net',
         process.env.CLIENT_URL
     ].filter(Boolean),
