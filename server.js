@@ -5,15 +5,19 @@ const dotenv = require('dotenv');
 dotenv.config();
 const connectDB = require('./config/db');
 const errorHandler = require('./middleware/errorMiddleware');
-app.options('*', cors());
 
 // 1️⃣ Initialize Express FIRST
 const app = express();
 
-// 2️⃣ Connect to MongoDB
-connectDB();
+// 2️⃣ Enable preflight CORS AFTER app is created
+app.options('*', cors());
 
-// 3️⃣ Configure CORS for Azure & local dev
+// 3️⃣ Connect to MongoDB (non-blocking)
+connectDB().catch(err => {
+  console.error('❌ MongoDB connection failed:', err.message);
+});
+
+// 4️⃣ Configure CORS for Azure & local dev
 app.use(cors({
   origin: [
     'http://localhost:3000',
@@ -21,20 +25,20 @@ app.use(cors({
     process.env.CLIENT_URL
   ].filter(Boolean),
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type','Authorization']
 }));
 
-// 4️⃣ Parse JSON
+// 5️⃣ Parse JSON
 app.use(express.json());
 
-// 5️⃣ Request logger
+// 6️⃣ Request logger
 app.use((req, res, next) => {
   console.log(`📥 ${req.method} ${req.path} - ${new Date().toISOString()}`);
   next();
 });
 
-// 6️⃣ Health check & root
+// 7️⃣ Health check & root
 app.get('/api/health', (req, res) => {
   res.json({
     message: 'Server is running',
@@ -125,7 +129,6 @@ try {
   console.error('❌ Failed to load quiz routes:', err.message);
 }
 
-
 try {
   const analyticsRoutes = require('./routes/analyticsRoutes');
   app.use('/api/analytics', analyticsRoutes);
@@ -152,10 +155,10 @@ try {
 
 console.log('🔧 All routes loaded successfully');
 
-// 7️⃣ Global error handler
+// 8️⃣ Global error handler
 app.use(errorHandler);
 
-// 8️⃣ 404 handler
+// 9️⃣ 404 handler
 app.use((req, res) => {
   console.log(`❌ 404 - Route not found: ${req.method} ${req.originalUrl}`);
   res.status(404).json({
@@ -178,17 +181,20 @@ app.use((req, res) => {
   });
 });
 
-// 9️⃣ Start server
+// 🔟 Start server — bind to 0.0.0.0 for Azure
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📍 Server URL: ${process.env.NODE_ENV === 'production'
-    ? 'https://forum-backend-cnfrb6eubggucqda.canadacentral-01.azurewebsites.net'
-    : `http://localhost:${PORT}`}`);
+  console.log(`📍 Server URL: ${
+    process.env.NODE_ENV === 'production'
+      ? 'https://forum-backend-cnfrb6eubggucqda.canadacentral-01.azurewebsites.net'
+      : `http://localhost:${PORT}`
+  }`);
   console.log('🔧 Routes loaded, server ready!');
 });
 
 module.exports = app;
+
 
 
 // const express = require('express');
