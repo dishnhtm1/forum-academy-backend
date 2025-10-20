@@ -187,7 +187,7 @@ async function createTestData() {
     );
     console.log("   3. Check server logs for API requests");
     console.log(
-      "   4. Run: curl http://localhost:5000/api/listening-exercises"
+      "   4. Run: curl ${API_URL}/api/listening-exercises"
     );
     console.log("=".repeat(60));
 
