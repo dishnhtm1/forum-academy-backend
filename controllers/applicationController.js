@@ -1,5 +1,6 @@
 const Application = require('../models/Application');
 const { sendReplyEmail, sendApplicationStatusEmail } = require('../services/emailService');
+const NotificationService = require('../services/notificationService');
 
 exports.submitApplication = async (req, res) => {
     try {
@@ -78,6 +79,13 @@ exports.submitApplication = async (req, res) => {
         await application.save();
 
         console.log('✅ Application saved successfully:', application._id);
+
+        // Create notification for admins about new application
+        try {
+            await NotificationService.notifyAdminsApplicationSubmission(application._id, null);
+        } catch (notificationError) {
+            console.error('⚠️ Failed to send application notification:', notificationError);
+        }
 
         // Send success response
         res.status(201).json({

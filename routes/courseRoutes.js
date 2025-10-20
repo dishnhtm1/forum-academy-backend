@@ -123,16 +123,71 @@ router.delete('/:id', protect, authorize('superadmin', 'admin', 'faculty', 'teac
     }
 
     // Check if user is the instructor or admin
-    if (course.instructor.toString() !== req.user._id.toString() && 
+    if (course.instructor && course.instructor.toString() !== req.user._id.toString() && 
         !['superadmin', 'admin'].includes(req.user.role)) {
       return res.status(403).json({ message: 'Not authorized to delete this course' });
     }
 
+    console.log(`🗑️ Starting deletion process for course: ${req.params.id}`);
+
+    // Import related models for cascading delete
+    const Homework = require('../models/Homework');
+    const Quiz = require('../models/Quiz');
+    const ListeningExercise = require('../models/ListeningExercise');
+    const CourseMaterial = require('../models/CourseMaterial');
+    const HomeworkSubmission = require('../models/HomeworkSubmission');
+    const QuizSubmission = require('../models/QuizSubmission');
+    const ListeningSubmission = require('../models/ListeningSubmission');
+
+    // First, get all related records to delete their submissions
+    console.log('📋 Finding related records...');
+    const [homeworks, quizzes, listeningExercises] = await Promise.all([
+      Homework.find({ course: req.params.id }),
+      Quiz.find({ course: req.params.id }),
+      ListeningExercise.find({ course: req.params.id })
+    ]);
+
+    console.log(`📊 Found related records: ${homeworks.length} homeworks, ${quizzes.length} quizzes, ${listeningExercises.length} listening exercises`);
+
+    // Delete all submissions for related records
+    const homeworkIds = homeworks.map(h => h._id);
+    const quizIds = quizzes.map(q => q._id);
+    const listeningExerciseIds = listeningExercises.map(l => l._id);
+
+    console.log('🗑️ Deleting submissions...');
+    await Promise.all([
+      HomeworkSubmission.deleteMany({ homework: { $in: homeworkIds } }),
+      QuizSubmission.deleteMany({ quiz: { $in: quizIds } }),
+      ListeningSubmission.deleteMany({ listeningExercise: { $in: listeningExerciseIds } })
+    ]);
+
+    console.log('🗑️ Deleting related records...');
+    // Delete all related records
+    await Promise.all([
+      Homework.deleteMany({ course: req.params.id }),
+      Quiz.deleteMany({ course: req.params.id }),
+      ListeningExercise.deleteMany({ course: req.params.id }),
+      CourseMaterial.deleteMany({ course: req.params.id })
+    ]);
+
+    console.log('🗑️ Deleting course...');
+    // Now delete the course
     await Course.findByIdAndDelete(req.params.id);
-    res.json({ message: 'Course deleted successfully' });
+    
+    console.log(`✅ Course ${req.params.id} and all related records deleted successfully`);
+    res.json({ message: 'Course and all related content deleted successfully' });
   } catch (error) {
-    console.error('Error deleting course:', error);
-    res.status(500).json({ message: 'Server error' });
+    console.error('❌ Error deleting course:', error);
+    console.error('❌ Error stack:', error.stack);
+    console.error('❌ Course ID:', req.params.id);
+    console.error('❌ User ID:', req.user._id);
+    console.error('❌ User role:', req.user.role);
+    
+    res.status(500).json({ 
+      message: 'Server error', 
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 });
 

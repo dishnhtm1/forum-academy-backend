@@ -24,6 +24,9 @@ app.use(cors({
 
 app.use(express.json());
 
+// Serve static files for uploads
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // Request logging middleware
 app.use((req, res, next) => {
     console.log(`📥 ${req.method} ${req.path} - ${new Date().toISOString()}`);
@@ -145,12 +148,27 @@ try {
     console.error('❌ Failed to load homework submission routes:', error.message);
 }
 
-// 404 handler
+// 404 handler with route debugging
 app.use((req, res) => {
+    console.log(`❌ 404 - Route not found: ${req.method} ${req.originalUrl}`);
     res.status(404).json({
         message: 'Route not found',
         method: req.method,
-        path: req.originalUrl
+        path: req.originalUrl,
+        timestamp: new Date().toISOString(),
+        availableRoutes: [
+            '/api/health',
+            '/api/auth/*',
+            '/api/users/*',
+            '/api/applications/*',
+            '/api/contact/*',
+            '/api/admin/*',
+            '/api/quizzes/*',
+            '/api/courses/*',
+            '/api/homework/*',
+            '/api/homework-submissions/*',
+            '/api/course-materials/*'
+        ]
     });
 });
 

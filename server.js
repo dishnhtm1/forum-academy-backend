@@ -17,15 +17,30 @@ connectDB();
 
 // Enhanced CORS configuration for both development and production
 app.use(cors({
-    origin: [
-        'http://localhost:3000', 
-        'http://localhost:3001',
-        'https://icy-moss-00f282010.1.azurestaticapps.net',
-        process.env.CLIENT_URL
-    ].filter(Boolean),
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+        
+        const allowedOrigins = [
+            'http://localhost:3000', 
+            'http://localhost:3001',
+            'http://localhost:5173', // Vite default port
+            'https://wonderful-meadow-0e35b381e.6.azurestaticapps.net',
+            'https://icy-moss-00f282010.1.azurestaticapps.net',
+            process.env.CLIENT_URL
+        ].filter(Boolean);
+        
+        if (allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            console.log('CORS blocked origin:', origin);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    optionsSuccessStatus: 200 // Some legacy browsers choke on 204
 }));
 
 // Handle preflight requests explicitly
@@ -33,6 +48,9 @@ app.options('*', cors());
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Serve static files for uploads
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Request logging middleware
 app.use((req, res, next) => {
@@ -50,7 +68,7 @@ app.get('/api/health', (req, res) => {
         routes: [
             'auth', 'users', 'course-materials', 'applications', 
             'contact', 'admin', 'quizzes', 'courses', 'homework', 
-            'homework-submissions', 'listening-exercises', 'announcements', 'progress', 'analytics'
+            'homework-submissions', 'listening-exercises', 'announcements', 'progress', 'analytics', 'notifications'
         ]
     });
 });
@@ -232,6 +250,36 @@ try {
     console.log('✅ Analytics routes loaded');
 } catch (error) {
     console.error('❌ Failed to load analytics routes:', error.message);
+}
+
+// Load notification routes (for real-time notifications)
+console.log('🔧 Loading notification routes...');
+try {
+    const notificationRoutes = require('./routes/notificationRoutes');
+    app.use('/api/notifications', notificationRoutes);
+    console.log('✅ Notification routes loaded');
+} catch (error) {
+    console.error('❌ Failed to load notification routes:', error.message);
+}
+
+// Load email routes (for sending emails from admin dashboard)
+console.log('🔧 Loading email routes...');
+try {
+    const emailRoutes = require('./routes/emailRoutes');
+    app.use('/api', emailRoutes);  // Mount directly on /api so it becomes /api/send-email
+    console.log('✅ Email routes loaded');
+} catch (error) {
+    console.error('❌ Failed to load email routes:', error.message);
+}
+
+// Load Zoom routes (for live class management)
+console.log('🔧 Loading Zoom routes...');
+try {
+    const zoomRoutes = require('./routes/zoomRoutes');
+    app.use('/api/zoom', zoomRoutes);
+    console.log('✅ Zoom routes loaded');
+} catch (error) {
+    console.error('❌ Failed to load Zoom routes:', error.message);
 }
 
 console.log('🔧 All routes loaded successfully');

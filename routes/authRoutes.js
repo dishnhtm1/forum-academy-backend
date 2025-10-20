@@ -1,9 +1,44 @@
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 const { register, login } = require('../controllers/authController');
 const { authenticate, authorizeRoles } = require('../middleware/authMiddleware');
 const User = require('../models/User');
 const { sendMessageToUser } = require('../controllers/authController');
+
+// Create uploads directory if it doesn't exist
+const uploadsDir = path.join(__dirname, '../uploads/avatars');
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// Configure multer for avatar uploads
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, uploadsDir);
+    },
+    filename: function (req, file, cb) {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, 'avatar-' + uniqueSuffix + path.extname(file.originalname));
+    }
+});
+
+const upload = multer({
+    storage: storage,
+    limits: {
+        fileSize: 5 * 1024 * 1024, // 5MB limit
+    },
+    fileFilter: function (req, file, cb) {
+        // Check if the file is an image
+        if (file.mimetype.startsWith('image/')) {
+            cb(null, true);
+        } else {
+            cb(new Error('Only image files are allowed!'), false);
+        }
+    }
+});
 
 
 // Import password reset controller functions
@@ -24,6 +59,97 @@ router.post('/verify-otp', verifyOTP);
 router.post('/resend-otp', resendOTP);
 router.post('/reset-password', resetPassword);
 router.post('/send-message', authenticate, authorizeRoles('admin'), sendMessageToUser);
+
+// Test route for avatar upload (without middleware)
+router.post('/test-upload-avatar', async (req, res) => {
+    res.json({ message: 'Test upload endpoint works', timestamp: new Date().toISOString() });
+});
+
+// Avatar upload route (simplified for debugging)
+router.post('/upload-avatar', async (req, res) => {
+    console.log('📸 Upload avatar route hit:', req.method, req.path);
+    console.log('📸 Headers:', req.headers);
+    
+    try {
+        // Check authentication manually
+        const token = req.headers.authorization?.replace('Bearer ', '');
+        if (!token) {
+            return res.status(401).json({ message: 'No authentication token provided' });
+        }
+
+        // For now, just return success to test if the route works
+        res.json({
+            message: 'Avatar upload endpoint is working',
+            timestamp: new Date().toISOString(),
+            hasFile: !!req.file,
+            hasBody: !!req.body
+        });
+    } catch (error) {
+        console.error('Avatar upload error:', error);
+        res.status(500).json({ message: 'Avatar upload failed', error: error.message });
+    }
+});
+
+// Avatar upload route (full implementation)
+router.post('/upload-avatar-full', authenticate, upload.single('avatar'), async (req, res) => {
+    try {
+        console.log('📸 Full upload avatar route hit');
+        
+        if (!req.file) {
+            return res.status(400).json({ message: 'No file uploaded' });
+        }
+
+        // Generate the URL for the uploaded file
+        const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+
+        // Update user's profile image in database
+        const user = await User.findByIdAndUpdate(
+            req.user.id,
+            { profileImage: avatarUrl },
+            { new: true }
+        );
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        res.json({
+            url: avatarUrl,
+            message: 'Avatar uploaded successfully'
+        });
+    } catch (error) {
+        console.error('Avatar upload error:', error);
+        res.status(500).json({ message: 'Avatar upload failed' });
+    }
+});
+
+// Profile update route
+router.put('/profile', authenticate, async (req, res) => {
+    try {
+        const { firstName, lastName, phone, bio, profileImage } = req.body;
+        
+        const user = await User.findByIdAndUpdate(
+            req.user.id,
+            {
+                firstName,
+                lastName,
+                phone,
+                bio,
+                ...(profileImage && { profileImage })
+            },
+            { new: true }
+        ).select('-password');
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        res.json(user);
+    } catch (error) {
+        console.error('Profile update error:', error);
+        res.status(500).json({ message: 'Profile update failed' });
+    }
+});
 
 
 // Admin route to approve a user by ID

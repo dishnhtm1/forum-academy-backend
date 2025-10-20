@@ -1045,4 +1045,72 @@ router.post('/send-message', authenticate, authorizeRoles('admin'), async (req, 
 // Add new route using controller
 router.post('/:id/reply', authenticate, authorizeRoles('admin'), replyToApplication);
 
+// Approve application route
+router.put('/:id/approve', authenticate, authorizeRoles('admin'), async (req, res) => {
+    try {
+        const applicationId = req.params.id;
+        console.log(`✅ Approving application: ${applicationId}`);
+        
+        const application = await Application.findByIdAndUpdate(
+            applicationId,
+            { status: 'approved', updatedAt: new Date() },
+            { new: true }
+        );
+        
+        if (!application) {
+            return res.status(404).json({
+                success: false,
+                message: 'Application not found'
+            });
+        }
+        
+        res.json({
+            success: true,
+            message: 'Application approved successfully',
+            application
+        });
+    } catch (error) {
+        console.error('❌ Error approving application:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error approving application',
+            error: error.message
+        });
+    }
+});
+
+// Reject application route
+router.put('/:id/reject', authenticate, authorizeRoles('admin'), async (req, res) => {
+    try {
+        const applicationId = req.params.id;
+        console.log(`❌ Rejecting application: ${applicationId}`);
+        
+        const application = await Application.findByIdAndUpdate(
+            applicationId,
+            { status: 'rejected', updatedAt: new Date() },
+            { new: true }
+        );
+        
+        if (!application) {
+            return res.status(404).json({
+                success: false,
+                message: 'Application not found'
+            });
+        }
+        
+        res.json({
+            success: true,
+            message: 'Application rejected successfully',
+            application
+        });
+    } catch (error) {
+        console.error('❌ Error rejecting application:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error rejecting application',
+            error: error.message
+        });
+    }
+});
+
 module.exports = router;

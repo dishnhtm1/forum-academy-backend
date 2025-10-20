@@ -49,6 +49,26 @@ const ContactSchema = new mongoose.Schema({
         enum: ['pending', 'resolved', 'approved', 'ignored'],
         default: 'pending'
     },
+    // Internal messaging fields
+    isInternalMessage: {
+        type: Boolean,
+        default: false
+    },
+    senderId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: false
+    },
+    recipientId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: false
+    },
+    messageType: {
+        type: String,
+        enum: ['teacher_to_student', 'admin_to_teacher', 'admin_to_student', 'general'],
+        default: 'general'
+    },
     repliedAt: {
         type: Date
     },

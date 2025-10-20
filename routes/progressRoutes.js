@@ -3,6 +3,7 @@ const router = express.Router();
 const Progress = require('../models/Progress');
 const User = require('../models/User');
 const { authenticate, authorizeRoles } = require('../middleware/authMiddleware');
+const NotificationService = require('../services/notificationService');
 
 console.log('🔧 Loading progressRoutes.js...');
 
@@ -139,6 +140,14 @@ router.post('/', authenticate, authorizeRoles('teacher', 'admin'), async (req, r
         await progress.save();
         await progress.populate('student', 'firstName lastName email studentId gradeLevel');
         await progress.populate('teacher', 'firstName lastName email subject');
+        
+        // Create notification for teachers about student progress
+        try {
+            await NotificationService.notifyTeachersStudentProgress(student, subject, progress);
+        } catch (notificationError) {
+            console.error('⚠️ Failed to send progress notification:', notificationError);
+            // Don't fail the main operation if notification fails
+        }
         
         console.log('✅ Progress record created successfully');
         res.status(201).json({

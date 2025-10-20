@@ -380,5 +380,112 @@ router.post('/reply', authenticate, authorizeRoles('admin'), async (req, res) =>
 // Add new route using controller
 router.post('/:id/reply', authenticate, authorizeRoles('admin'), replyToContact);
 
+// Approve contact route
+router.put('/:id/approve', authenticate, authorizeRoles('admin'), async (req, res) => {
+    try {
+        const contactId = req.params.id;
+        console.log(`✅ Approving contact: ${contactId}`);
+        
+        const contact = await Contact.findByIdAndUpdate(
+            contactId,
+            { status: 'approved', updatedAt: new Date() },
+            { new: true }
+        );
+        
+        if (!contact) {
+            return res.status(404).json({
+                success: false,
+                message: 'Contact not found'
+            });
+        }
+        
+        res.json({
+            success: true,
+            message: 'Contact approved successfully',
+            contact
+        });
+    } catch (error) {
+        console.error('❌ Error approving contact:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error approving contact',
+            error: error.message
+        });
+    }
+});
+
+// Reject contact route
+router.put('/:id/reject', authenticate, authorizeRoles('admin'), async (req, res) => {
+    try {
+        const contactId = req.params.id;
+        console.log(`❌ Rejecting contact: ${contactId}`);
+        
+        const contact = await Contact.findByIdAndUpdate(
+            contactId,
+            { status: 'rejected', updatedAt: new Date() },
+            { new: true }
+        );
+        
+        if (!contact) {
+            return res.status(404).json({
+                success: false,
+                message: 'Contact not found'
+            });
+        }
+        
+        res.json({
+            success: true,
+            message: 'Contact rejected successfully',
+            contact
+        });
+    } catch (error) {
+        console.error('❌ Error rejecting contact:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error rejecting contact',
+            error: error.message
+        });
+    }
+});
+
+// Internal messaging routes (Teacher to Student)
+router.post('/messages/send', authenticate, authorizeRoles('admin', 'teacher', 'faculty'), async (req, res) => {
+    try {
+        console.log('📤 Sending internal message:', req.body);
+        const { recipientId, recipientEmail, recipientName, subject, message, type } = req.body;
+        
+        // Create a contact entry for internal messaging
+        const messageContact = new Contact({
+            name: `${req.user.firstName || ''} ${req.user.lastName || ''}`.trim() || 'Teacher',
+            email: req.user.email,
+            phone: '', // Not needed for internal messages
+            subject: `[${type?.toUpperCase()}] ${subject}`,
+            message: `To: ${recipientName} (${recipientEmail})\n\n${message}`,
+            status: 'pending',
+            // Add metadata for internal messages
+            isInternalMessage: true,
+            senderId: req.user._id,
+            recipientId: recipientId,
+            messageType: type || 'teacher_to_student'
+        });
+        
+        await messageContact.save();
+        
+        console.log('✅ Internal message saved successfully');
+        res.status(201).json({
+            success: true,
+            message: 'Message sent successfully',
+            data: messageContact
+        });
+    } catch (error) {
+        console.error('❌ Error sending internal message:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error sending message',
+            error: error.message
+        });
+    }
+});
+
 console.log('✅ contactRoutes.js loaded successfully');
 module.exports = router;

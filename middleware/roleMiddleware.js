@@ -15,4 +15,21 @@ exports.clientOnly = (req, res, next) => {
   next();
 };
 
+// Generic role middleware that accepts an array of allowed roles
+exports.roleMiddleware = (allowedRoles) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+    
+    if (!allowedRoles.includes(req.user.role)) {
+      return res.status(403).json({ 
+        message: `Access denied. Required roles: ${allowedRoles.join(', ')}` 
+      });
+    }
+    
+    next();
+  };
+};
+
 console.log('✅ roleMiddleware.js loaded successfully');

@@ -114,9 +114,19 @@ const authenticate = async (req, res, next) => {
             return res.status(401).json({ message: 'Token is not valid' });
         }
 
-        // Check if user is approved (important for your app logic)
-        if (!user.isApproved) {
+        // Check if user is approved (bypass for admin and superadmin roles)
+        // Admins and superadmins don't need approval to access the system
+        const adminRoles = ['admin', 'superadmin'];
+        if (!adminRoles.includes(user.role) && !user.isApproved) {
+            console.log(`🚫 User ${user.email} (${user.role}) blocked - not approved`);
             return res.status(403).json({ message: 'Account not approved yet' });
+        }
+        
+        // Log successful authentication
+        if (adminRoles.includes(user.role)) {
+            console.log(`✅ Admin/Superadmin ${user.email} authenticated (approval bypassed)`);
+        } else if (user.isApproved) {
+            console.log(`✅ User ${user.email} (${user.role}) authenticated (approved)`);
         }
 
         req.user = user;

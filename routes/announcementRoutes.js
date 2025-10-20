@@ -3,6 +3,7 @@ const router = express.Router();
 const Announcement = require('../models/Announcement');
 const User = require('../models/User');
 const { authenticate, authorizeRoles } = require('../middleware/authMiddleware');
+const NotificationService = require('../services/notificationService');
 
 console.log('🔧 Loading announcementRoutes.js...');
 
@@ -172,6 +173,16 @@ router.post('/', authenticate, authorizeRoles('teacher', 'admin'), async (req, r
         await announcement.save();
         await announcement.populate('author', 'firstName lastName email role');
         await announcement.populate('targetUsers', 'firstName lastName email role');
+        
+        // Create notification for announcement
+        try {
+            if (targetAudience === 'all' || targetAudience === 'students' || targetAudience === 'teachers') {
+                await NotificationService.notifyAllUsersAnnouncement(announcement._id, req.user.id, title);
+            }
+        } catch (notificationError) {
+            console.error('⚠️ Failed to send announcement notification:', notificationError);
+            // Don't fail the main operation if notification fails
+        }
         
         console.log('✅ Announcement created successfully');
         res.status(201).json({

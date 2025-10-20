@@ -308,7 +308,7 @@ router.post('/', authenticate, authorizeRoles('admin'), async (req, res) => {
             email, 
             password, 
             role, 
-            isApproved = true,
+            isApproved = true,  // Default to true when admin creates users
             phone,
             dateOfBirth,
             address,
@@ -338,12 +338,13 @@ router.post('/', authenticate, authorizeRoles('admin'), async (req, res) => {
             email,
             password, // Will be hashed by the User model pre-save hook
             role,
-            isApproved,
+            isApproved: true,  // Always approve users created by admin
             phone,
             dateOfBirth,
             address,
-            approvedBy: isApproved ? req.user.id : null,
-            approvedAt: isApproved ? new Date() : null
+            approvedBy: req.user.id,  // Track who approved
+            approvedAt: new Date(),
+            isEmailVerified: true  // Also mark email as verified for admin-created users
         };
 
         // Add role-specific fields
@@ -360,7 +361,7 @@ router.post('/', authenticate, authorizeRoles('admin'), async (req, res) => {
         const newUser = new User(userData);
         await newUser.save();
 
-        console.log(`✅ User created successfully: ${newUser.email} (${newUser.role})`);
+        console.log(`✅ User created successfully: ${newUser.email} (${newUser.role}) - Pre-approved by admin`);
         
         // Return user without password
         const userResponse = newUser.toObject();
