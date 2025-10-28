@@ -140,7 +140,84 @@ router.get('/meetings/:id', async (req, res) => {
   }
 });
 
-// Create a new Zoom meeting (with database persistence)
+// // Create a new Zoom meeting (with database persistence)
+// router.post('/meetings', async (req, res) => {
+//   try {
+//     const { 
+//       title, 
+//       description, 
+//       courseId, 
+//       startTime, 
+//       duration = 60, 
+//       allowedStudents = [],
+//       settings = {}
+//     } = req.body;
+
+//     // For now, use your personal meeting ID for all meetings
+//     // In production, this would create real Zoom meetings via API
+//     const personalMeetingId = '3360628977';
+//     const uniqueMeetingId = personalMeetingId + '-' + Math.floor(Math.random() * 1000).toString();
+//     const password = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+
+//     // Get course information to populate courseName
+//     const Course = require('../models/Course');
+//     const course = await Course.findById(courseId);
+//     const courseName = course ? course.title : 'Live Class';
+
+//     // Get instructor information
+//     const User = require('../models/User');
+//     const instructor = req.user?.id ? await User.findById(req.user.id) : null;
+//     const instructorName = instructor ? `${instructor.firstName} ${instructor.lastName}` : 'Instructor';
+
+//     // If no allowedStudents specified, get all enrolled students from the course
+//     let enrolledStudents = allowedStudents;
+//     if (!allowedStudents || allowedStudents.length === 0) {
+//       if (course && course.students) {
+//         enrolledStudents = course.students;
+//       }
+//     }
+
+//     const meeting = new ZoomMeeting({
+//       title: title,
+//       description: description || 'Live class session',
+//       startTime: startTime || new Date(),
+//       duration: duration,
+//       meetingId: uniqueMeetingId,
+//       meetingPassword: password,
+//       joinUrl: `https://zoom.us/j/${personalMeetingId}?pwd=${password}`,
+//       courseId: courseId || new mongoose.Types.ObjectId(),
+//       courseName: courseName,
+//       instructor: req.user?.id || new mongoose.Types.ObjectId(),
+//       instructorName: instructorName,
+//       allowedStudents: enrolledStudents,
+//       status: 'scheduled',
+//       settings: {
+//         waitingRoom: true,
+//         muteOnEntry: true,
+//         recordMeeting: false,
+//         autoRecording: 'local',
+//         ...settings
+//       }
+//     });
+
+//     await meeting.save();
+
+//     // Populate the response
+//     await meeting.populate('courseId', 'title students');
+//     await meeting.populate('instructor', 'firstName lastName');
+//     await meeting.populate('allowedStudents', 'firstName lastName email');
+
+//     res.status(201).json({
+//       success: true,
+//       meeting: meeting,
+//       message: 'Meeting created successfully with automatic enrollment'
+//     });
+//   } catch (error) {
+//     console.error('Error creating meeting:', error);
+//     res.status(500).json({ error: error.message });
+//   }
+// });
+// Create a new Zoom meeting (real API + database persistence)
 router.post('/meetings', async (req, res) => {
   try {
     const { 
@@ -153,70 +230,63 @@ router.post('/meetings', async (req, res) => {
       settings = {}
     } = req.body;
 
-    // For now, use your personal meeting ID for all meetings
-    // In production, this would create real Zoom meetings via API
-    const personalMeetingId = '3360628977';
-    const uniqueMeetingId = personalMeetingId + '-' + Math.floor(Math.random() * 1000).toString();
-    const password = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-
-    // Get course information to populate courseName
     const Course = require('../models/Course');
-    const course = await Course.findById(courseId);
-    const courseName = course ? course.title : 'Live Class';
-
-    // Get instructor information
     const User = require('../models/User');
-    const instructor = req.user?.id ? await User.findById(req.user.id) : null;
-    const instructorName = instructor ? `${instructor.firstName} ${instructor.lastName}` : 'Instructor';
+    const course = await Course.findById(courseId);
+    const instructor = req.user ? await User.findById(req.user.id) : null;
 
-    // If no allowedStudents specified, get all enrolled students from the course
-    let enrolledStudents = allowedStudents;
-    if (!allowedStudents || allowedStudents.length === 0) {
-      if (course && course.students) {
-        enrolledStudents = course.students;
-      }
-    }
+    const topic = title || `Live Class - ${course?.title || 'Untitled Course'}`;
 
-    const meeting = new ZoomMeeting({
-      title: title,
-      description: description || 'Live class session',
-      startTime: startTime || new Date(),
-      duration: duration,
-      meetingId: uniqueMeetingId,
-      meetingPassword: password,
-      joinUrl: `https://zoom.us/j/${personalMeetingId}?pwd=${password}`,
-      courseId: courseId || new mongoose.Types.ObjectId(),
-      courseName: courseName,
-      instructor: req.user?.id || new mongoose.Types.ObjectId(),
-      instructorName: instructorName,
-      allowedStudents: enrolledStudents,
-      status: 'scheduled',
-      settings: {
-        waitingRoom: true,
-        muteOnEntry: true,
-        recordMeeting: false,
-        autoRecording: 'local',
-        ...settings
-      }
+    // ✅ STEP 1 — Create Zoom meeting via API
+    const { success, meeting, error } = await zoomService.createMeeting({
+      title: topic,
+      startTime,
+      duration,
+      description,
+      settings,
     });
 
-    await meeting.save();
+    if (!success) {
+      console.error('❌ Zoom API error:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to create Zoom meeting',
+        error,
+      });
+    }
 
-    // Populate the response
-    await meeting.populate('courseId', 'title students');
-    await meeting.populate('instructor', 'firstName lastName');
-    await meeting.populate('allowedStudents', 'firstName lastName email');
+    // ✅ STEP 2 — Save meeting to MongoDB
+    const newMeeting = new ZoomMeeting({
+      title,
+      description: description || 'Live Zoom class',
+      startTime,
+      duration,
+      meetingId: meeting.id,
+      meetingPassword: meeting.password,
+      joinUrl: meeting.joinUrl,
+      startUrl: meeting.startUrl,
+      courseId,
+      courseName: course?.title || 'Live Course',
+      instructor: instructor?._id || new mongoose.Types.ObjectId(),
+      instructorName: `${instructor?.firstName || ''} ${instructor?.lastName || ''}`,
+      allowedStudents: allowedStudents.length ? allowedStudents : course?.students || [],
+      status: 'scheduled',
+      settings,
+    });
+
+    await newMeeting.save();
 
     res.status(201).json({
       success: true,
-      meeting: meeting,
-      message: 'Meeting created successfully with automatic enrollment'
+      meeting: newMeeting,
+      message: '✅ Zoom meeting created successfully',
     });
   } catch (error) {
-    console.error('Error creating meeting:', error);
+    console.error('❌ Error creating Zoom meeting:', error.response?.data || error.message);
     res.status(500).json({ error: error.message });
   }
 });
+
 
 // Update a Zoom meeting
 router.put('/meetings/:id', async (req, res) => {
