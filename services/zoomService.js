@@ -21,46 +21,52 @@ class ZoomService {
     }
   }
 
-  // Get OAuth Access Token for Server-to-Server OAuth
-  async getAccessToken() {
-    try {
-      // Return cached token if still valid
-      if (this.accessToken && this.tokenExpiry && Date.now() < this.tokenExpiry) {
-        return this.accessToken;
-      }
-
-      console.log('🔑 Fetching new Zoom access token...');
-      
-      // Use Server-to-Server OAuth if accountId is available
-      if (this.accountId) {
-        const credentials = Buffer.from(`${this.clientId}:${this.clientSecret}`).toString('base64');
-        
-        const response = await axios.post(
-          `https://zoom.us/oauth/token?grant_type=account_credentials&account_id=${this.accountId}`,
-          {},
-          {
-            headers: {
-              'Authorization': `Basic ${credentials}`,
-              'Content-Type': 'application/x-www-form-urlencoded'
-            }
-          }
-        );
-
-        this.accessToken = response.data.access_token;
-        // Set expiry to 5 minutes before actual expiry for safety
-        this.tokenExpiry = Date.now() + (response.data.expires_in - 300) * 1000;
-        
-        console.log('✅ Zoom access token obtained');
-        return this.accessToken;
-      } else {
-        // Fallback to JWT for legacy apps
-        return this.generateJWT();
-      }
-    } catch (error) {
-      console.error('❌ Error getting Zoom access token:', error.response?.data || error.message);
-      throw error;
+// Get OAuth Access Token for Server-to-Server OAuth
+async getAccessToken() {
+  try {
+    // Return cached token if still valid
+    if (this.accessToken && this.tokenExpiry && Date.now() < this.tokenExpiry) {
+      return this.accessToken;
     }
+
+    console.log('🔑 Fetching new Zoom access token...');
+
+    if (this.accountId) {
+      // Use built-in auth option (safer and cleaner)
+      const response = await axios.post(
+        'https://zoom.us/oauth/token',
+        new URLSearchParams({
+          grant_type: 'account_credentials',
+          account_id: this.accountId,
+        }),
+        {
+          auth: {
+            username: this.clientId,
+            password: this.clientSecret,
+          },
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+        }
+      );
+
+      this.accessToken = response.data.access_token;
+      this.tokenExpiry = Date.now() + (response.data.expires_in - 300) * 1000;
+
+      console.log('✅ Zoom access token obtained');
+      return this.accessToken;
+    } else {
+      return this.generateJWT(); // fallback for legacy JWT
+    }
+  } catch (error) {
+    console.error(
+      '❌ Error getting Zoom access token:',
+      error.response?.data || error.message
+    );
+    throw error;
   }
+}
+
 
   // Generate JWT token for Zoom API authentication (legacy method)
   generateJWT() {
