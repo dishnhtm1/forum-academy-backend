@@ -238,6 +238,17 @@ try {
   console.error("❌ Failed to load listening exercise routes:", error.message);
 }
 
+// Load enrollment routes
+console.log("🔧 Loading enrollment routes...");
+try {
+  const enrollmentRoutes = require("./routes/enrollmentRoutes");
+  app.use("/api/enrollments", enrollmentRoutes);
+  console.log("✅ Enrollment routes loaded");
+} catch (error) {
+  console.error("❌ Failed to load enrollment routes:", error.message);
+}
+
+
 // Load progress routes (for student progress tracking)
 console.log("🔧 Loading progress routes...");
 try {
