@@ -22,7 +22,10 @@ const notificationSchema = new mongoose.Schema({
       'enrollment',
       'homework_reminder',
       'parent_message',
-      'system'
+      'system',
+      'live_class_started',
+      'live_class_ended',
+      'zoom_class'
     ],
     required: true
   },
@@ -86,7 +89,10 @@ notificationSchema.virtual('icon').get(function() {
     'enrollment': 'user',
     'homework_reminder': 'clock-circle',
     'parent_message': 'team',
-    'system': 'setting'
+    'system': 'setting',
+    'live_class_started': 'video-camera',
+    'live_class_ended': 'video-camera',
+    'zoom_class': 'video-camera'
   };
   return iconMap[this.type] || 'bell';
 });
@@ -105,7 +111,10 @@ notificationSchema.virtual('color').get(function() {
     'enrollment': '#52c41a',
     'homework_reminder': '#f5222d',
     'parent_message': '#722ed1',
-    'system': '#13c2c2'
+    'system': '#13c2c2',
+    'live_class_started': '#dc2626',
+    'live_class_ended': '#6b7280',
+    'zoom_class': '#dc2626'
   };
   return colorMap[this.type] || '#1890ff';
 });
