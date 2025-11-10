@@ -105,8 +105,7 @@ exports.login = async (req, res) => {
       query.role = role;
     }
     
-    // const user = await User.findOne(query);
-    const user = await User.findOne({ email });
+    const user = await User.findOne(query);
     
     if (!user) {
       console.log('❌ User not found:', email);
