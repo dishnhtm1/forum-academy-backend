@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const Progress = require("../models/Progress");
 const User = require("../models/User");
+const Course = require("../models/Course");
 const {
   authenticate,
   authorizeRoles,
@@ -114,7 +115,9 @@ router.post(
         student,
         subject,
         assignment,
+        assignmentName,
         description,
+        feedback,
         grade,
         score,
         maxScore,
@@ -123,6 +126,8 @@ router.post(
         submissionDate,
         isPublished,
         tags,
+        course,
+        courseId,
       } = req.body;
 
       // Verify student exists
@@ -134,17 +139,108 @@ router.post(
         });
       }
 
+      const resolveCourseId = courseId || course;
+      let resolvedCourse = null;
+      if (resolveCourseId) {
+        try {
+          resolvedCourse = await Course.findById(resolveCourseId).lean();
+        } catch (courseError) {
+          console.warn(
+            "⚠️ Unable to resolve course for progress record:",
+            courseError
+          );
+        }
+      }
+
+      let resolvedSubject =
+        subject ||
+        resolvedCourse?.title ||
+        resolvedCourse?.name ||
+        resolvedCourse?.code ||
+        "General";
+
+      const normalizedAssignment =
+        assignmentName || assignment || "Assignment";
+
+      const normalizedComments =
+        comments || feedback || description || "";
+
+      const parsedScore =
+        typeof score === "string" ? Number(score) : score;
+      const parsedMaxScore =
+        typeof maxScore === "string" ? Number(maxScore) : maxScore || 100;
+
+      if (
+        Number.isNaN(parsedScore) ||
+        parsedScore == null ||
+        parsedScore < 0
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: "Score must be provided as a valid number",
+        });
+      }
+
+      const safeMaxScore =
+        parsedMaxScore && parsedMaxScore > 0 ? parsedMaxScore : 100;
+
+      const percentage = Math.min(
+        100,
+        Math.round((parsedScore / safeMaxScore) * 100)
+      );
+
+      const gradeScale = [
+        { threshold: 97, value: "A+" },
+        { threshold: 93, value: "A" },
+        { threshold: 90, value: "A-" },
+        { threshold: 87, value: "B+" },
+        { threshold: 83, value: "B" },
+        { threshold: 80, value: "B-" },
+        { threshold: 77, value: "C+" },
+        { threshold: 73, value: "C" },
+        { threshold: 70, value: "C-" },
+        { threshold: 67, value: "D+" },
+        { threshold: 65, value: "D" },
+      ];
+
+      const derivedGrade =
+        gradeScale.find((entry) => percentage >= entry.threshold)?.value ||
+        "F";
+
+      const normalizedGrade = (() => {
+        if (!grade) return derivedGrade;
+        const upper = String(grade).toUpperCase();
+        const allowed = [
+          "A+",
+          "A",
+          "A-",
+          "B+",
+          "B",
+          "B-",
+          "C+",
+          "C",
+          "C-",
+          "D+",
+          "D",
+          "F",
+        ];
+        return allowed.includes(upper) ? upper : derivedGrade;
+      })();
+
+      const normalizedAssignmentType =
+        assignmentType || resolvedCourse?.defaultAssignmentType || "homework";
+
       const progress = new Progress({
         student,
         teacher: req.user.id,
-        subject,
-        assignment,
+        subject: resolvedSubject,
+        assignment: normalizedAssignment,
         description,
-        grade,
-        score,
-        maxScore: maxScore || 100,
-        comments,
-        assignmentType: assignmentType || "homework",
+        grade: normalizedGrade,
+        score: parsedScore,
+        maxScore: safeMaxScore,
+        comments: normalizedComments,
+        assignmentType: normalizedAssignmentType,
         submissionDate,
         isPublished: isPublished !== false,
         tags: tags || [],
@@ -180,6 +276,20 @@ router.post(
       });
     } catch (error) {
       console.error("❌ Error creating progress record:", error);
+      if (error?.name === "ValidationError") {
+        const details = Object.entries(error.errors || {}).reduce(
+          (acc, [key, err]) => {
+            acc[key] = err.message;
+            return acc;
+          },
+          {}
+        );
+        return res.status(400).json({
+          success: false,
+          message: "Validation failed while creating progress record",
+          error: details,
+        });
+      }
       res.status(500).json({
         success: false,
         message: "Error creating progress record",

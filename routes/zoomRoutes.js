@@ -161,6 +161,8 @@ router.post("/meetings", async (req, res) => {
       duration = 60,
       allowedStudents = [],
       settings = {},
+      teacherId: bodyTeacherId,
+      teacherName: bodyTeacherName,
     } = req.body;
 
     // For now, use your personal meeting ID for all meetings
@@ -174,15 +176,32 @@ router.post("/meetings", async (req, res) => {
 
     // Get course information to populate courseName
     const Course = require("../models/Course");
-    const course = await Course.findById(courseId);
+    const course = courseId ? await Course.findById(courseId) : null;
     const courseName = course ? course.title : "Live Class";
 
     // Get instructor information
     const User = require("../models/User");
-    const instructor = req.user?.id ? await User.findById(req.user.id) : null;
-    const instructorName = instructor
-      ? `${instructor.firstName} ${instructor.lastName}`
-      : "Instructor";
+    const instructorId =
+      req.user?.id ||
+      bodyTeacherId ||
+      course?.instructor ||
+      course?.teacher ||
+      new mongoose.Types.ObjectId();
+
+    const instructor =
+      req.user?.id
+        ? await User.findById(req.user.id)
+        : bodyTeacherId
+        ? await User.findById(bodyTeacherId).catch(() => null)
+        : null;
+
+    const instructorName =
+      instructor?.firstName && instructor?.lastName
+        ? `${instructor.firstName} ${instructor.lastName}`
+        : bodyTeacherName ||
+          course?.instructorName ||
+          course?.teacherName ||
+          "Instructor";
 
     // If no allowedStudents specified, get all enrolled students from the course
     let enrolledStudents = allowedStudents;
@@ -193,7 +212,7 @@ router.post("/meetings", async (req, res) => {
     }
 
     const meeting = new ZoomMeeting({
-      title: title,
+      title: title || description || courseName || "Live Class",
       description: description || "Live class session",
       startTime: startTime || new Date(),
       duration: duration,
@@ -202,7 +221,7 @@ router.post("/meetings", async (req, res) => {
       joinUrl: `https://zoom.us/j/${personalMeetingId}?pwd=${password}`,
       courseId: courseId || new mongoose.Types.ObjectId(),
       courseName: courseName,
-      instructor: req.user?.id || new mongoose.Types.ObjectId(),
+      instructor: instructorId,
       instructorName: instructorName,
       allowedStudents: enrolledStudents,
       status: "scheduled",
@@ -245,11 +264,22 @@ router.put("/meetings/:id", async (req, res) => {
     const { id } = req.params;
     const updateData = req.body;
 
-    const meeting = await ZoomMeeting.findByIdAndUpdate(
-      id,
-      { ...updateData, updatedAt: new Date() },
-      { new: true, runValidators: true }
-    );
+    const Course = require("../models/Course");
+    const User = require("../models/User");
+
+    const meetingIdKey =
+      id && id !== "undefined"
+        ? id
+        : updateData.meetingId || updateData.id;
+
+    if (!meetingIdKey) {
+      return res.status(400).json({
+        success: false,
+        message: "Meeting ID is required",
+      });
+    }
+
+    const meeting = await ZoomMeeting.findById(meetingIdKey);
 
     if (!meeting) {
       return res.status(404).json({
@@ -257,6 +287,47 @@ router.put("/meetings/:id", async (req, res) => {
         message: "Meeting not found",
       });
     }
+
+    if (updateData.courseId && updateData.courseId !== meeting.courseId?.toString()) {
+      const newCourse = await Course.findById(updateData.courseId);
+      if (newCourse) {
+        updateData.courseName = newCourse.title;
+        if ((!updateData.allowedStudents || !updateData.allowedStudents.length) && newCourse.students) {
+          updateData.allowedStudents = newCourse.students;
+        }
+      }
+    }
+
+    if (updateData.teacherId && updateData.teacherId !== meeting.instructor?.toString()) {
+      const newInstructor = await User.findById(updateData.teacherId).catch(() => null);
+      if (newInstructor) {
+        updateData.instructorName = `${newInstructor.firstName || ""} ${newInstructor.lastName || ""}`.trim() || newInstructor.email;
+      } else if (updateData.teacherName) {
+        updateData.instructorName = updateData.teacherName;
+      }
+    }
+
+    Object.assign(meeting, updateData, {
+      title:
+        updateData.title ||
+        updateData.description ||
+        meeting.title ||
+        meeting.courseName ||
+        "Live Class",
+      updatedAt: new Date(),
+    });
+    await meeting.save();
+
+    if (!meeting) {
+      return res.status(404).json({
+        success: false,
+        message: "Meeting not found",
+      });
+    }
+
+    await meeting.populate("courseId", "title students");
+    await meeting.populate("instructor", "firstName lastName email");
+    await meeting.populate("allowedStudents", "firstName lastName email");
 
     res.json({
       success: true,

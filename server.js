@@ -118,7 +118,7 @@ app.get("/api/test-db", async (req, res) => {
 // Root route
 app.get("/", (req, res) => {
   res.json({
-    message: "✅ Forum Academy Backend is running",
+    message: "✁EForum Academy Backend is running",
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || "development",
     version: "1.0.0",
@@ -133,9 +133,9 @@ console.log("🔧 Loading auth routes...");
 try {
   const authRoutes = require("./routes/authRoutes");
   app.use("/api/auth", authRoutes);
-  console.log("✅ Auth routes loaded");
+  console.log("✁EAuth routes loaded");
 } catch (error) {
-  console.error("❌ Failed to load auth routes:", error.message);
+  console.error("❁EFailed to load auth routes:", error.message);
 }
 
 // Load user routes (needed for admin dashboard)
@@ -143,9 +143,9 @@ console.log("🔧 Loading user routes...");
 try {
   const userRoutes = require("./routes/userRoutes");
   app.use("/api/users", userRoutes);
-  console.log("✅ User routes loaded");
+  console.log("✁EUser routes loaded");
 } catch (error) {
-  console.error("❌ Failed to load user routes:", error.message);
+  console.error("❁EFailed to load user routes:", error.message);
 }
 
 // Load course material routes (needed for dashboard)
@@ -153,9 +153,9 @@ console.log("🔧 Loading course material routes...");
 try {
   const courseMaterialRoutes = require("./routes/courseMaterialRoutes");
   app.use("/api/course-materials", courseMaterialRoutes);
-  console.log("✅ Course material routes loaded");
+  console.log("✁ECourse material routes loaded");
 } catch (error) {
-  console.error("❌ Failed to load course material routes:", error.message);
+  console.error("❁EFailed to load course material routes:", error.message);
 }
 
 // Load application routes (needed for admin)
@@ -163,9 +163,9 @@ console.log("🔧 Loading application routes...");
 try {
   const applicationRoutes = require("./routes/applicationRoutes");
   app.use("/api/applications", applicationRoutes);
-  console.log("✅ Application routes loaded");
+  console.log("✁EApplication routes loaded");
 } catch (error) {
-  console.error("❌ Failed to load application routes:", error.message);
+  console.error("❁EFailed to load application routes:", error.message);
 }
 
 // Load contact routes
@@ -173,9 +173,9 @@ console.log("🔧 Loading contact routes...");
 try {
   const contactRoutes = require("./routes/contactRoutes");
   app.use("/api/contact", contactRoutes);
-  console.log("✅ Contact routes loaded");
+  console.log("✁EContact routes loaded");
 } catch (error) {
-  console.error("❌ Failed to load contact routes:", error.message);
+  console.error("❁EFailed to load contact routes:", error.message);
 }
 
 // Load admin routes
@@ -183,9 +183,9 @@ console.log("🔧 Loading admin routes...");
 try {
   const adminRoutes = require("./routes/adminRoutes");
   app.use("/api/admin", adminRoutes);
-  console.log("✅ Admin routes loaded");
+  console.log("✁EAdmin routes loaded");
 } catch (error) {
-  console.error("❌ Failed to load admin routes:", error.message);
+  console.error("❁EFailed to load admin routes:", error.message);
 }
 
 // Load quiz routes
@@ -193,7 +193,11 @@ console.log("🔧 Loading quiz routes...");
 try {
   const quizRoutes = require("./routes/quizRoutes");
   app.use("/api/quizzes", quizRoutes);
-  console.log("✅ Quiz routes loaded");
+  console.log("✅ Quiz routes loaded successfully");
+  console.log("📋 Quiz route stack (first 5):", quizRoutes.stack.slice(0, 5).map(r => ({
+    path: r.route ? r.route.path : 'middleware',
+    methods: r.route ? Object.keys(r.route.methods) : []
+  })));
 } catch (error) {
   console.error("❌ Failed to load quiz routes:", error.message);
 }
@@ -203,9 +207,9 @@ console.log("🔧 Loading course routes...");
 try {
   const courseRoutes = require("./routes/courseRoutes");
   app.use("/api/courses", courseRoutes);
-  console.log("✅ Course routes loaded");
+  console.log("✁ECourse routes loaded");
 } catch (error) {
-  console.error("❌ Failed to load course routes:", error.message);
+  console.error("❁EFailed to load course routes:", error.message);
 }
 
 // Load homework routes (needed for homework management)
@@ -213,9 +217,9 @@ console.log("🔧 Loading homework routes...");
 try {
   const homeworkRoutes = require("./routes/homeworkRoutes");
   app.use("/api/homework", homeworkRoutes);
-  console.log("✅ Homework routes loaded");
+  console.log("✁EHomework routes loaded");
 } catch (error) {
-  console.error("❌ Failed to load homework routes:", error.message);
+  console.error("❁EFailed to load homework routes:", error.message);
 }
 
 // Load homework submission routes (needed for homework submissions)
@@ -223,9 +227,9 @@ console.log("🔧 Loading homework submission routes...");
 try {
   const homeworkSubmissionRoutes = require("./routes/homeworkSubmissionRoutes");
   app.use("/api/homework-submissions", homeworkSubmissionRoutes);
-  console.log("✅ Homework submission routes loaded");
+  console.log("✁EHomework submission routes loaded");
 } catch (error) {
-  console.error("❌ Failed to load homework submission routes:", error.message);
+  console.error("❁EFailed to load homework submission routes:", error.message);
 }
 
 // Load listening exercise routes (for listening comprehension exercises)
@@ -233,9 +237,9 @@ console.log("🔧 Loading listening exercise routes...");
 try {
   const listeningExerciseRoutes = require("./routes/listeningExerciseRoutes");
   app.use("/api/listening-exercises", listeningExerciseRoutes);
-  console.log("✅ Listening exercise routes loaded");
+  console.log("✁EListening exercise routes loaded");
 } catch (error) {
-  console.error("❌ Failed to load listening exercise routes:", error.message);
+  console.error("❁EFailed to load listening exercise routes:", error.message);
 }
 
 // Load progress routes (for student progress tracking)
@@ -243,9 +247,9 @@ console.log("🔧 Loading progress routes...");
 try {
   const progressRoutes = require("./routes/progressRoutes");
   app.use("/api/progress", progressRoutes);
-  console.log("✅ Progress routes loaded");
+  console.log("✁EProgress routes loaded");
 } catch (error) {
-  console.error("❌ Failed to load progress routes:", error.message);
+  console.error("❁EFailed to load progress routes:", error.message);
 }
 
 // Load announcement routes (for announcements and notifications)
@@ -253,9 +257,9 @@ console.log("🔧 Loading announcement routes...");
 try {
   const announcementRoutes = require("./routes/announcementRoutes");
   app.use("/api/announcements", announcementRoutes);
-  console.log("✅ Announcement routes loaded");
+  console.log("✁EAnnouncement routes loaded");
 } catch (error) {
-  console.error("❌ Failed to load announcement routes:", error.message);
+  console.error("❁EFailed to load announcement routes:", error.message);
 }
 
 // Load analytics routes (for admin analytics)
@@ -263,9 +267,9 @@ console.log("🔧 Loading analytics routes...");
 try {
   const analyticsRoutes = require("./routes/analyticsRoutes");
   app.use("/api/analytics", analyticsRoutes);
-  console.log("✅ Analytics routes loaded");
+  console.log("✁EAnalytics routes loaded");
 } catch (error) {
-  console.error("❌ Failed to load analytics routes:", error.message);
+  console.error("❁EFailed to load analytics routes:", error.message);
 }
 
 // Load notification routes (for real-time notifications)
@@ -273,9 +277,9 @@ console.log("🔧 Loading notification routes...");
 try {
   const notificationRoutes = require("./routes/notificationRoutes");
   app.use("/api/notifications", notificationRoutes);
-  console.log("✅ Notification routes loaded");
+  console.log("✁ENotification routes loaded");
 } catch (error) {
-  console.error("❌ Failed to load notification routes:", error.message);
+  console.error("❁EFailed to load notification routes:", error.message);
 }
 
 // Load email routes (for sending emails from admin dashboard)
@@ -283,9 +287,9 @@ console.log("🔧 Loading email routes...");
 try {
   const emailRoutes = require("./routes/emailRoutes");
   app.use("/api", emailRoutes); // Mount directly on /api so it becomes /api/send-email
-  console.log("✅ Email routes loaded");
+  console.log("✁EEmail routes loaded");
 } catch (error) {
-  console.error("❌ Failed to load email routes:", error.message);
+  console.error("❁EFailed to load email routes:", error.message);
 }
 
 // Load Zoom routes (for live class management)
@@ -293,9 +297,9 @@ console.log("🔧 Loading Zoom routes...");
 try {
   const zoomRoutes = require("./routes/zoomRoutes");
   app.use("/api/zoom", zoomRoutes);
-  console.log("✅ Zoom routes loaded");
+  console.log("✁EZoom routes loaded");
 } catch (error) {
-  console.error("❌ Failed to load Zoom routes:", error.message);
+  console.error("❁EFailed to load Zoom routes:", error.message);
 }
 
 console.log("🔧 All routes loaded successfully");
@@ -305,7 +309,7 @@ app.use(errorHandler);
 
 // 404 handler (MUST be last)
 app.use((req, res) => {
-  console.log(`❌ 404 - Route not found: ${req.method} ${req.originalUrl}`);
+  console.log(`❁E404 - Route not found: ${req.method} ${req.originalUrl}`);
   res.status(404).json({
     message: "Route not found",
     method: req.method,
@@ -361,7 +365,7 @@ app.listen(PORT, () => {
   console.log(
     `🌐 Client URL: ${process.env.CLIENT_URL || "http://localhost:3000"}`
   );
-  console.log("✅ Forum Academy Server ready!");
+  console.log("✁EForum Academy Server ready!");
   console.log("🔗 Available endpoints:");
   console.log("   - Health: /api/health");
   console.log("   - Database Test: /api/test-db");

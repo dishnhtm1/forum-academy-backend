@@ -104,6 +104,42 @@ router.head(
 // All other routes require authentication
 router.use(protect);
 
+// @route   DELETE /api/listening-exercises/submissions/:id
+// @desc    Delete a submission (Teachers/Admin)
+// @access  Private (Faculty/Admin/Teacher)
+router.delete(
+  "/submissions/:id",
+  authorize("faculty", "admin", "teacher"),
+  async (req, res) => {
+    try {
+      const ListeningSubmission = require("../models/ListeningSubmission");
+
+      const submission = await ListeningSubmission.findById(req.params.id);
+
+      if (!submission) {
+        return res.status(404).json({
+          success: false,
+          message: "Submission not found",
+        });
+      }
+
+      await ListeningSubmission.findByIdAndDelete(req.params.id);
+
+      res.json({
+        success: true,
+        message: "Submission deleted successfully",
+      });
+    } catch (error) {
+      console.error("Error deleting submission:", error);
+      res.status(500).json({
+        success: false,
+        message: "Error deleting submission",
+        error: error.message,
+      });
+    }
+  }
+);
+
 // @route   GET /api/listening-exercises
 // @desc    Get all listening exercises
 // @access  Private
